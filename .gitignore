@@ -130,3 +130,11 @@ dmypy.json
 
 # IDEA folder...
 .idea/
+
+# Data files that are not necessary
+# to track all the time...
+*/Data/
+
+# Minor tidbits of code that don't
+# need to be tracked...
+Sandox/
