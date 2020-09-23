@@ -14,6 +14,7 @@
 ######################################################
 
 import numpy as np
+from itertools import product
 import imageio
 import os
 
@@ -38,21 +39,35 @@ class SnakeGame:
         # Don't pay attention to the values here.
         # They'll get reset. It's just so my IDE can
         # recognize the data types used :)
-        self.fruitLoc = (0, 0)
+        self.fruitLoc = (-1, -1)
+        self.placedFruit = False
         self.reset()
 
     def reset(self):
         """
-        Resets the board and places the snake
-        in the top corner. It will always
-        be of length 3. Randomly places the
-        fruit as well.
-        :return: Starting position of snake
+        Resets the board. Nothing
+        to do here as the board itself
+        doesn't change.
+        :return:
         """
-        fruitCellNum = np.random.randint(low=3, high=self.boardSize ** 2)
-        self.fruitLoc = (fruitCellNum // self.boardSize, fruitCellNum % self.boardSize)
-        # Return top 3 corner cells...
-        return [(0, 0), (0, 1), (0, 2)]
+        self.placedFruit = False
+        self.fruitLoc = (-1, -1)
+        return
+
+    def placeFruit(self, snakeLocs):
+        """
+        Places the fruit at random depending on the
+        location of the snake. You should call this
+        from the agent right after resetting and right
+        after a fruit is eaten.
+        :param snakeLocs:
+        :return:
+        """
+        validLocs = [(r, c) for r, c in product(range(self.boardSize), repeat=2)
+                     if (r, c) not in snakeLocs]
+        # Randomly select one..
+        self.fruitLoc = np.random.choice(validLocs)
+        self.placedFruit = True
 
     def exportGIF(self, filename: str, frames: list, fruitLocs: list):
         """
