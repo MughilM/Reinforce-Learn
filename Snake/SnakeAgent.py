@@ -12,7 +12,7 @@
 ##################################################
 
 import numpy as np
-from .playSnake import SnakeGame
+from .SnakeEnv import SnakeGame
 
 import copy
 
@@ -52,7 +52,7 @@ class SnakeAgent:
             }
         }
         self.direction = ''
-        self.gameOver = 0
+        self.gameOver = False
         self.reset()
 
     def reset(self):
@@ -64,7 +64,7 @@ class SnakeAgent:
         self.currState = [(0, 0), (0, 1), (0, 2)]
         self.score = 3
         self.direction = 'R'
-        self.gameOver = 0
+        self.gameOver = False
         self.env.placeFruit(self.currState)
 
     def makeMove(self, turn):
@@ -119,6 +119,7 @@ class SnakeAgent:
         # state to extend. Takes care of weird edge cases.
         if self.currState[-1] == self.env.fruitLoc:
             self.currState.insert(0, self.prevStates[-1][0])
+            self.score += 1
             return 1, self.gameOver
         # We didn't crash or eat, so no reward
         return 0, self.gameOver

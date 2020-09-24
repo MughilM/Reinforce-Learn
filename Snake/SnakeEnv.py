@@ -1,5 +1,5 @@
 ######################################################
-# File: playSnake.py
+# File: SnakeEnv.py
 # Creation Date: 20/09/2020
 # Location: /Snake/
 #
@@ -114,3 +114,24 @@ class SnakeGame:
 
                 # Append to the GIF
                 writer.append_data(playedGame[i])
+
+    def printBoard(self, snakeLocs: list):
+        """
+        Given the locations of the snake, prints
+        out the board.
+        :param snakeLocs: The locations of the snake.
+        :return:
+        """
+        gameStr = np.zeros(shape=(self.boardSize + 2, self.boardSize + 2), dtype=str)
+        gameStr[:, :] = '-'
+        # Hashtags for board border...
+        gameStr[0, :] = '#'
+        gameStr[-1, :] = '#'
+        gameStr[:, 0] = '#'
+        gameStr[:, -1] = '#'
+        # 's' for snake body, 'h' for haed, 'f' for fruit
+        gameStr[self.fruitLoc[0] + 1, self.fruitLoc[1] + 1] = 'f'
+        for r, c in snakeLocs[-1]:
+            gameStr[r + 1, c + 1] = 's'
+        gameStr[snakeLocs[-1][0] + 1, snakeLocs[-1][1] + 1] = 'h'
+        print('\n'.join(''.join(row) for row in gameStr))
