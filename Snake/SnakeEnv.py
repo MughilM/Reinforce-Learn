@@ -70,7 +70,7 @@ class SnakeGame:
         self.fruitLocs.append(validLocs[selectionIndex])
         self.placedFruit = True
 
-    def exportGIF(self, filename: str, frames: list):
+    def exportGIF(self, filename: str, frames: list, scale=1):
         """
         Takes the previous states and exports them
         as a playable GIF. Automatically places
@@ -81,6 +81,8 @@ class SnakeGame:
         of the snake at each frame. Expects each element
         to be a list of two-tuples. The last element
         is the snake head.
+        :param: scale: How much to scale up the GIF. By
+        default, each "cell" takes up 1 pixel.
         :return:
         """
         if not filename.endswith('.gif'):
@@ -93,12 +95,13 @@ class SnakeGame:
         # Border and snake body will be white. Snake
         # head will half gray, and the fruit will be
         # a darker gray.
-        playedGame = np.zeros(shape=(len(frames), self.boardSize + 2, self.boardSize + 2), dtype=np.uint8)
+        playedGame = np.zeros(shape=(len(frames), (self.boardSize + 2) * scale, (self.boardSize + 2) * scale),
+                              dtype=np.uint8)
         # Put the border...
-        playedGame[:, 0, :] = 50
-        playedGame[:, -1, :] = 50
-        playedGame[:, :, 0] = 50
-        playedGame[:, :, -1] = 50
+        playedGame[:, :scale, :] = 50
+        playedGame[:, -scale:, :] = 50
+        playedGame[:, :, :scale] = 50
+        playedGame[:, :, -scale:] = 50
         filename = os.path.join('./Snake/Data/gifs', filename)
         # The fruit locations are only added every time the
         # snake eats, so we have to see when it eats, given
@@ -106,16 +109,32 @@ class SnakeGame:
         with imageio.get_writer(filename, mode='I') as writer:
             fruitIndex = 0
             for i, frame in enumerate(frames):
-                # The format is the reverse of zip
-                correctedSnakeLocs = zip(*[(i, r + 1, c + 1) for r, c in frame])
-                # print(list(correctedSnakeLocs))
+                # Increment the fruit if eaten
                 if i > 0 and len(frames[i]) > len(frames[i - 1]):
                     fruitIndex += 1
-                correctedFruitLoc = (i, self.fruitLocs[fruitIndex][0] + 1, self.fruitLocs[fruitIndex][1] + 1)
-                playedGame[tuple(correctedSnakeLocs)] = 255
-                playedGame[correctedFruitLoc] = 128
-                # Color the head a slightly off white...
-                playedGame[i, frame[-1][0] + 1, frame[-1][1] + 1] = 220
+                # We need to expand up the frame up according
+                # to the scale, which means adding locations...
+                # The cells should mark the upper left corner.
+                offsetSnakeBody = [((r + 1) * scale, (c + 1) * scale) for r, c in frame[:-1]]
+                # Now go through each cell, and "fill in"...
+                fullBodyLocs = []
+                for r, c in offsetSnakeBody:
+                    fullBodyLocs.extend(product(range(r, r + scale), range(c, c + scale)))
+                # The format is the reverse of zip
+                formattedBody = tuple(zip(*[(i, r, c) for r, c in fullBodyLocs]))
+
+                # Format the fruit location and head location the same way
+                fruitR, fruitC = self.fruitLocs[fruitIndex]
+                formattedFruitLoc = tuple(zip(*[(i, r, c) for r, c in
+                                                product(range((fruitR + 1) * scale, (fruitR + 2) * scale),
+                                                        range((fruitC + 1) * scale, (fruitC + 2) * scale))]))
+                headR, headC = frame[-1]
+                formattedHeadLoc = tuple(zip(*[(i, r, c) for r, c in
+                                               product(range((headR + 1) * scale, (headR + 2) * scale),
+                                                       range((headC + 1) * scale, (headC + 2) * scale))]))
+                playedGame[formattedBody] = 255
+                playedGame[formattedHeadLoc] = 220
+                playedGame[formattedFruitLoc] = 128
 
                 # Append to the GIF
                 writer.append_data(playedGame[i])
