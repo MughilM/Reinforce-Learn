@@ -16,11 +16,11 @@ from .SnakeEnv import SnakeGame
 
 import copy
 
+
 class SnakeAgent:
     def __init__(self, environment: SnakeGame):
         self.env = environment
-        self.prevStates = []
-        self.currState = []
+        self.states = []
         self.score = 0
         # Direction is from the snake's
         # perspective. Direction itself
@@ -60,12 +60,11 @@ class SnakeAgent:
         self.env.reset()
         # Clean the previous states,
         # and put the snake in the top corner...
-        self.prevStates = []
-        self.currState = [(0, 0), (0, 1), (0, 2)]
+        self.states = [[(0, 0), (0, 1), (0, 2)]]
         self.score = 3
         self.direction = 'R'
         self.gameOver = False
-        self.env.placeFruit(self.currState)
+        self.env.placeFruit(self.states[-1])
 
     def makeMove(self, turn):
         """
@@ -82,45 +81,49 @@ class SnakeAgent:
         if self.gameOver:
             print('Game is over! Please reset!')
             return
-        self.prevStates.append(copy.deepcopy(self.currState))
+        currState = copy.deepcopy(self.states[-1])
         newDirection = self.DIR_RESULT[self.direction][turn]
         for i in range(self.score - 1):
-            self.currState[i] = self.currState[i + 1]
+            currState[i] = currState[i + 1]
         # If we didn't change direction, push everything one...
         if newDirection == self.direction:
             # Using the current direction, update the head...
             if self.direction == 'U':
-                self.currState[-1] = (self.currState[-1][0] - 1, self.currState[-1][1])
+                currState[-1] = (currState[-1][0] - 1, currState[-1][1])
             elif self.direction == 'D':
-                self.currState[-1] = (self.currState[-1][0] + 1, self.currState[-1][1])
+                currState[-1] = (currState[-1][0] + 1, currState[-1][1])
             elif self.direction == 'L':
-                self.currState[-1] = (self.currState[-1][0], self.currState[-1][1] - 1)
+                currState[-1] = (currState[-1][0], currState[-1][1] - 1)
             else:
-                self.currState[-1] = (self.currState[-1][0], self.currState[-1][1] + 1)
+                currState[-1] = (currState[-1][0], currState[-1][1] + 1)
         # Changed direction.
         else:
             if newDirection == 'U':
-                self.currState[-1] = (self.currState[-2][0] - 1, self.currState[-2][1])
+                currState[-1] = (currState[-2][0] - 1, currState[-2][1])
             elif newDirection == 'D':
-                self.currState[-1] = (self.currState[-2][0] + 1, self.currState[-2][1])
+                currState[-1] = (currState[-2][0] + 1, currState[-2][1])
             elif newDirection == 'L':
-                self.currState[-1] = (self.currState[-2][0], self.currState[-2][1] - 1)
+                currState[-1] = (currState[-2][0], currState[-2][1] - 1)
             else:
-                self.currState[-1] = (self.currState[-2][0], self.currState[-2][1] + 1)
-
+                currState[-1] = (currState[-2][0], currState[-2][1] + 1)
+        self.direction = newDirection
         # Check to see if we've crashed...
         # Either we ate ourself or went out of bounds.
-        if (self.currState[-1] in self.currState[:-1]) or \
-                (any(r < 0 or c < 0 or r >= self.env.boardSize or c >= self.env.boardSize for r, c in self.currState)):
+        if (currState[-1] in currState[:-1]) or \
+                (any(r < 0 or c < 0 or r >= self.env.boardSize or c >= self.env.boardSize for r, c in currState)):
             self.gameOver = True
+            self.states.append(currState)
             return -1, self.gameOver
         # Check to see if we've eaten a fruit.
         # Use the tail location of the previous
         # state to extend. Takes care of weird edge cases.
-        if self.currState[-1] == self.env.fruitLoc:
-            self.currState.insert(0, self.prevStates[-1][0])
+        if currState[-1] == self.env.fruitLocs[-1]:
+            currState.insert(0, self.states[-1][0])
             self.score += 1
+            self.env.placeFruit(currState)
+            self.states.append(currState)
             return 1, self.gameOver
+        self.states.append(currState)
         # We didn't crash or eat, so no reward
         return 0, self.gameOver
 

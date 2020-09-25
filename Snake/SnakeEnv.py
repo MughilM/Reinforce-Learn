@@ -30,8 +30,8 @@ class SnakeGame:
         :param boardSize: Side length of board
         """
         # Create directories...
-        os.makedirs('./Data/imgs/', exist_ok=True)
-        os.makedirs('./Data/gifs/', exist_ok=True)
+        os.makedirs('./Snake/Data/imgs/', exist_ok=True)
+        os.makedirs('./Snake/Data/gifs/', exist_ok=True)
         # Force a minimum size of 5...
         if boardSize < 5:
             raise ValueError("Board size of {} is too small!".format(boardSize))
@@ -39,7 +39,7 @@ class SnakeGame:
         # Don't pay attention to the values here.
         # They'll get reset. It's just so my IDE can
         # recognize the data types used :)
-        self.fruitLoc = (-1, -1)
+        self.fruitLocs = []
         self.placedFruit = False
         self.reset()
 
@@ -51,7 +51,7 @@ class SnakeGame:
         :return:
         """
         self.placedFruit = False
-        self.fruitLoc = (-1, -1)
+        self.fruitLocs = []
         return
 
     def placeFruit(self, snakeLocs):
@@ -65,11 +65,12 @@ class SnakeGame:
         """
         validLocs = [(r, c) for r, c in product(range(self.boardSize), repeat=2)
                      if (r, c) not in snakeLocs]
-        # Randomly select one..
-        self.fruitLoc = np.random.choice(validLocs)
+        # Randomly select one...
+        selectionIndex = np.random.choice(len(validLocs))
+        self.fruitLocs.append(validLocs[selectionIndex])
         self.placedFruit = True
 
-    def exportGIF(self, filename: str, frames: list, fruitLocs: list):
+    def exportGIF(self, filename: str, frames: list):
         """
         Takes the previous states and exports them
         as a playable GIF. Automatically places
@@ -80,9 +81,6 @@ class SnakeGame:
         of the snake at each frame. Expects each element
         to be a list of two-tuples. The last element
         is the snake head.
-        :param: frutiLocs: A list containing the fruit
-        locations at each frame. Should be the same length
-        as `frames`.
         :return:
         """
         if not filename.endswith('.gif'):
@@ -95,27 +93,34 @@ class SnakeGame:
         # Border and snake body will be white. Snake
         # head will half gray, and the fruit will be
         # a darker gray.
-        playedGame = np.zeros(shape=(len(frames), self.boardSize + 2, self.boardSize + 2), dtype=float)
+        playedGame = np.zeros(shape=(len(frames), self.boardSize + 2, self.boardSize + 2), dtype=np.uint8)
         # Put the border...
-        playedGame[:, 0, :] = 1
-        playedGame[:, -1, :] = 1
-        playedGame[:, :, 0] = 1
-        playedGame[:, :, -1] = 1
-        filename = os.path.join('./Data/', filename)
+        playedGame[:, 0, :] = 50
+        playedGame[:, -1, :] = 50
+        playedGame[:, :, 0] = 50
+        playedGame[:, :, -1] = 50
+        filename = os.path.join('./Snake/Data/gifs', filename)
+        # The fruit locations are only added every time the
+        # snake eats, so we have to see when it eats, given
+        # when the snake gets longer...
         with imageio.get_writer(filename, mode='I') as writer:
-            for i, (frame, fruit) in enumerate(zip(frames, fruitLocs)):
+            fruitIndex = 0
+            for i, frame in enumerate(frames):
                 # The format is the reverse of zip
                 correctedSnakeLocs = zip(*[(i, r + 1, c + 1) for r, c in frame])
-                correctedFruitLoc = (i, fruit[0] + 1, fruit[1] + 1)
-                playedGame[correctedSnakeLocs] = 1
-                playedGame[correctedFruitLoc] = 0.3
-                # Color the head...
-                playedGame[i, frame[-1][0] + 1, frame[-1][1] + 1] = 0.7
+                # print(list(correctedSnakeLocs))
+                if i > 0 and len(frames[i]) > len(frames[i - 1]):
+                    fruitIndex += 1
+                correctedFruitLoc = (i, self.fruitLocs[fruitIndex][0] + 1, self.fruitLocs[fruitIndex][1] + 1)
+                playedGame[tuple(correctedSnakeLocs)] = 255
+                playedGame[correctedFruitLoc] = 128
+                # Color the head a slightly off white...
+                playedGame[i, frame[-1][0] + 1, frame[-1][1] + 1] = 220
 
                 # Append to the GIF
                 writer.append_data(playedGame[i])
 
-    def printBoard(self, snakeLocs: list):
+    def boardToString(self, snakeLocs: list):
         """
         Given the locations of the snake, prints
         out the board.
@@ -130,8 +135,8 @@ class SnakeGame:
         gameStr[:, 0] = '#'
         gameStr[:, -1] = '#'
         # 's' for snake body, 'h' for haed, 'f' for fruit
-        gameStr[self.fruitLoc[0] + 1, self.fruitLoc[1] + 1] = 'f'
-        for r, c in snakeLocs[-1]:
+        gameStr[self.fruitLocs[-1][0] + 1, self.fruitLocs[-1][1] + 1] = 'f'
+        for r, c in snakeLocs[:-1]:
             gameStr[r + 1, c + 1] = 's'
         gameStr[snakeLocs[-1][0] + 1, snakeLocs[-1][1] + 1] = 'h'
-        print('\n'.join(''.join(row) for row in gameStr))
+        return '\n'.join(''.join(row) for row in gameStr)
