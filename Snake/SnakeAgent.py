@@ -11,7 +11,6 @@
 # board and the food.
 ##################################################
 
-import numpy as np
 from .SnakeEnv import SnakeGame
 
 import copy
@@ -229,3 +228,4 @@ class SnakeAgent:
 
             # Save! We'll add the nextStates afterwards
             codedStates.append((coding, turn, reward, go))
+        return codedStates
