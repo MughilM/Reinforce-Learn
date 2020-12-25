@@ -22,6 +22,7 @@ class SnakeAgent:
         self.snakeFrames = []
         self.actionsRewards = []
         self.score = 0
+        self.actionList = ['F', 'L', 'R']
         # Direction is from the snake's
         # perspective. Direction itself
         # is up, down, left, right. But
@@ -66,6 +67,7 @@ class SnakeAgent:
         # turning from that state.
         self.snakeFrames = [[(0, 0), (0, 1), (0, 2)]]
         self.actionsRewards = []
+        self.actionList = ['F', 'L', 'R']
         self.score = 3
         self.direction = 'R'
         self.gameOver = False
@@ -133,6 +135,79 @@ class SnakeAgent:
         self.actionsRewards.append((self.direction, turn, reward, self.gameOver))
         self.direction = newDirection  # Set to new direction...
         return reward, self.gameOver
+
+    def encodeCurrentState(self):
+        """
+        Primarily internal method. It will take the current
+        state of the snake, and encode it according to our rules.
+        It will use the most recent location of the fruit in
+        the environment variables.
+        :return:
+        """
+        currState = self.snakeFrames[-1]
+        directionCode = {
+            'U': '1000',
+            'D': '0100',
+            'L': '0010',
+            'R': '0001'
+        }
+        coding = ''
+        # For immediate danger, we look at the snake head, and see
+        # if either the edge of the board or a snake body part is
+        # next to it. The array is in FLR order.
+        head = currState[-1]
+        if self.direction == 'U':
+            proximity = [
+                (head[0] - 1, head[1]),
+                (head[0], head[1] - 1),
+                (head[0], head[1] + 1)
+            ]
+        elif self.direction == 'D':
+            proximity = [
+                (head[0] + 1, head[1]),
+                (head[0], head[1] + 1),
+                (head[0], head[1] - 1)
+            ]
+        elif self.direction == 'L':
+            proximity = [
+                (head[0], head[1] - 1),
+                (head[0] + 1, head[1]),
+                (head[0] - 1, head[1])
+            ]
+        else:
+            proximity = [
+                (head[0], head[1] + 1),
+                (head[0] - 1, head[1]),
+                (head[0] + 1, head[1])
+            ]
+        # Lotta stuff going on here:
+        #   Check if each location is in the snake body
+        #   or off the board. Convert the Trues and Falses
+        # into a bit string we can directly attach to our coding.
+        dangers = ((r, c) in currState or not (0 <= r < self.env.boardSize and 0 <= c < self.env.boardSize)
+                   for r, c in proximity)
+        coding += ''.join(map(lambda x: str(int(x)), dangers))
+
+        # Now the fruit location. The fruit can't be both above and
+        # below the snake, so append in pairs...
+        fruitR, fruitC = self.env.fruitLocs[-1]
+        if head[0] > fruitR:
+            coding += '10'
+        elif head[0] < fruitR:
+            coding += '01'
+        else:
+            coding += '00'  # The fruit is on the same row
+        # Left/right
+        if head[1] > fruitC:
+            coding += '10'
+        elif head[1] < fruitC:
+            coding += '01'
+        else:
+            coding += '00'
+
+        # Now the direction of the snake...Straightforward
+        coding += directionCode[self.direction]
+        return coding
 
     def getGameMemory(self):
         """
@@ -216,9 +291,9 @@ class SnakeAgent:
             else:
                 coding += '00'  # The fruit is on the same row
             # Left/right
-            if head[1] < fruitC:
+            if head[1] > fruitC:
                 coding += '10'
-            elif head[1] > fruitC:
+            elif head[1] < fruitC:
                 coding += '01'
             else:
                 coding += '00'
