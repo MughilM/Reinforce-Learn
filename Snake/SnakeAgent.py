@@ -20,6 +20,7 @@ class SnakeAgent:
     def __init__(self, environment: SnakeGame):
         self.env = environment
         self.snakeFrames = []
+        self.encodedStates = []
         self.actionsRewards = []
         self.score = 0
         self.actionList = ['F', 'L', 'R']
@@ -72,6 +73,8 @@ class SnakeAgent:
         self.direction = 'R'
         self.gameOver = False
         self.env.placeFruit(self.snakeFrames[-1])
+        # Encode the starting state...
+        self.encodedStates = [self.encodeCurrentState()]
 
     def makeMove(self, turn):
         """
@@ -118,7 +121,7 @@ class SnakeAgent:
         if (currState[-1] in currState[:-1]) or \
                 (any(r < 0 or c < 0 or r >= self.env.boardSize or c >= self.env.boardSize for r, c in currState)):
             self.gameOver = True
-            reward = -1
+            reward = -10
         # Check to see if we've eaten a fruit.
         # Use the tail location of the previous
         # state to extend. Takes care of weird edge cases.
@@ -126,7 +129,7 @@ class SnakeAgent:
             currState.insert(0, self.snakeFrames[-1][0])
             self.score += 1
             self.env.placeFruit(currState)
-            reward = 1
+            reward = 10
         else:
             reward = 0  # We didn't crash or eat, so no reward
         self.snakeFrames.append(currState)
@@ -134,15 +137,27 @@ class SnakeAgent:
         # BEFORE it turned. The turn resulted in a reward...
         self.actionsRewards.append((self.direction, turn, reward, self.gameOver))
         self.direction = newDirection  # Set to new direction...
+        # Append the encoding of this state...
+        self.encodedStates.append(self.encodeCurrentState())
         return reward, self.gameOver
 
     def encodeCurrentState(self):
         """
         Primarily internal method. It will take the current
         state of the snake, and encode it according to our rules.
-        It will use the most recent location of the fruit in
+        It will use the most recent location of the snake in
         the environment variables.
-        :return:
+        :return: The state coded as an 11-bit string:
+            - Is there immediate danger in front, left,
+            or right of the snake?
+            - The direction of the fruit (up, down, left,
+            right). From a top-down perspective. More
+            than one is possible.
+            - The direction of the snake (up, down, left,
+            right)
+        Thus, the coding is [danger ==> 'FLR']
+        [fruit direction ==> 'UDLR']
+        [snake direction ==> 'UDLR'] (mutually exclusive)
         """
         currState = self.snakeFrames[-1]
         directionCode = {
@@ -213,94 +228,22 @@ class SnakeAgent:
         """
         Converts all the frames of the game into a format
         for Q-learning. Ideally should be called when
-        the game is over.
+        the game is over, but since we are saving
+        the encoded states as we go along, you can
+        call it whenever....
         :return: A list of tuples in the form
-        (state, action, reward, gameOver). The
-        state is coded as an 11-bit string:
-            - Is there immediate danger in front, left,
-            or right of the snake?
-            - The direction of the fruit (up, down, left,
-            right). From a top-down perspective. More
-            than one is possible.
-            - The direction of the snake (up, down, left,
-            right)
-        Thus, the coding is [danger ==> 'FLR']
-        [fruit direction ==> 'UDLR']
-        [snake direction ==> 'UDLR'] (mutually exclusive)
+        (state, action, reward, nextState, gameOver).
         """
-        directionCode = {
-            'U': '1000',
-            'D': '0100',
-            'L': '0010',
-            'R': '0001'
-        }
-        # Past fruit locations are part of the environment
-        fruitIndex = 0
-        codedStates = []
-        # for snakeFrame, (direction, turn, reward, go) in zip(self.snakeFrames, self.actionsRewards):
+        # The length of the actionRewards list will always be
+        # one less than the length of the states. Thus,
+        # because of what we're keeping track of,
+        # this is a simple loop...
+        memory = []
         for i in range(len(self.actionsRewards)):
-            snakeFrame = self.snakeFrames[i]
-            direction, turn, reward, go = self.actionsRewards[i]
-            # If the previous frame ate the fruit, then increment the index.
-            if i > 0 and self.actionsRewards[i - 1][2] == 1:
-                fruitIndex += 1
-            coding = ''
-            # For immediate danger, we look at the snake head, and see
-            # if either the edge of the board or a snake body part is
-            # next to it. The array is in FLR order.
-            head = snakeFrame[-1]
-            if direction == 'U':
-                proximity = [
-                    (head[0] - 1, head[1]),
-                    (head[0], head[1] - 1),
-                    (head[0], head[1] + 1)
-                ]
-            elif direction == 'D':
-                proximity = [
-                    (head[0] + 1, head[1]),
-                    (head[0], head[1] + 1),
-                    (head[0], head[1] - 1)
-                ]
-            elif direction == 'L':
-                proximity = [
-                    (head[0], head[1] - 1),
-                    (head[0] + 1, head[1]),
-                    (head[0] - 1, head[1])
-                ]
-            else:
-                proximity = [
-                    (head[0], head[1] + 1),
-                    (head[0] - 1, head[1]),
-                    (head[0] + 1, head[1])
-                ]
-            # Lotta stuff going on here:
-            #   Check if each location is in the snake body
-            #   or off the board. Convert the Trues and Falses
-            # into a bit string we can directly attach to our coding.
-            dangers = ((r, c) in snakeFrame or not (0 <= r < self.env.boardSize and 0 <= c < self.env.boardSize)
-                       for r, c in proximity)
-            coding += ''.join(map(lambda x: str(int(x)), dangers))
+            currentState = self.encodedStates[i]
+            nextState = self.encodedStates[i + 1]
+            _, action, reward, gameOver = self.actionsRewards[i]
+            memory.append((currentState, action, reward, nextState, gameOver))
+        return memory
 
-            # Now the fruit location. The fruit can't be both above and
-            # below the snake, so append in pairs...
-            fruitR, fruitC = self.env.fruitLocs[fruitIndex]
-            if head[0] > fruitR:
-                coding += '10'
-            elif head[0] < fruitR:
-                coding += '01'
-            else:
-                coding += '00'  # The fruit is on the same row
-            # Left/right
-            if head[1] > fruitC:
-                coding += '10'
-            elif head[1] < fruitC:
-                coding += '01'
-            else:
-                coding += '00'
 
-            # Now the direction of the snake...Straightforward
-            coding += directionCode[direction]
-
-            # Save! We'll add the nextStates afterwards
-            codedStates.append((coding, turn, reward, go))
-        return codedStates
