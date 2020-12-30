@@ -70,6 +70,57 @@ class SnakeGame:
         self.fruitLocs.append(validLocs[selectionIndex])
         self.placedFruit = True
 
+    def produceBoardFrame(self, frame, startLength=3, scale=1):
+        """
+        This method produces ONE frame in image format of
+        the current game state, including the snake and fruit.
+        The starting length of the snake is needed to compute
+        the correct fruit location.
+        :param frame: A list of tuples (r, c) of the snake locations.
+        The LAST one is assumed to be the head.
+        :param startLength: The starting length of snake. Default 3.
+        :param scale: How much to "blow up" the image. Depends on
+        the board size. Default no scale at 1.
+        :return: An ndarray (board size + 2, board size + 2), and scaled up,
+        colored in grayscale of the snake...
+        """
+        snakeLength = len(frame)
+        fruitIndex = snakeLength - startLength
+        fruitR, fruitC = self.fruitLocs[fruitIndex]
+        gameFrame = np.zeros(shape=((self.boardSize + 2) * scale, (self.boardSize + 2) * scale),
+                             dtype=np.uint8)
+        # Put the border...
+        gameFrame[:scale, :] = 50
+        gameFrame[-scale:, :] = 50
+        gameFrame[:, :scale] = 50
+        gameFrame[:, -scale:] = 50
+        # Upscale the frame indices so that each original coordinate
+        # will now represent the upper left corner of a "box".
+        offsetSnakeBody = [((r + 1) * scale, (c + 1) * scale) for r, c in frame[:-1]]
+        # Now add the rest of each box...
+        fullBodyLocs = []
+        for r, c in offsetSnakeBody:
+            fullBodyLocs.extend(product(range(r, r + scale), range(c, c + scale)))
+        # To easily assign values to the gameFrame, a change
+        # of format is necessary...
+        formattedBody = tuple(zip(*[(r, c) for r, c in fullBodyLocs]))
+        # The head and the fruit are different colors, so
+        # format those the same way...
+        formattedFruitLoc = tuple(zip(*[(r, c) for r, c in
+                                        product(range((fruitR + 1) * scale, (fruitR + 2) * scale),
+                                                range((fruitC + 1) * scale, (fruitC + 2) * scale))]))
+        headR, headC = frame[-1]
+        formattedHeadLoc = tuple(zip(*[(r, c) for r, c in
+                                       product(range((headR + 1) * scale, (headR + 2) * scale),
+                                               range((headC + 1) * scale, (headC + 2) * scale))]))
+        # The body is white, the head is slightly
+        # darker, the fruit is even more darker...
+        gameFrame[formattedBody] = 255
+        gameFrame[formattedHeadLoc] = 220
+        gameFrame[formattedFruitLoc] = 128
+
+        return gameFrame
+
     def exportGIF(self, filename: str, frames: list, scale=1):
         """
         Takes the previous states and exports them
@@ -87,56 +138,17 @@ class SnakeGame:
         """
         if not filename.endswith('.gif'):
             filename += '.gif'
-        # We will convert these to numpy arrays
-        # An ndarray of shape
-        # (num of frames, board size + 2, board size + 2)
-        # We add 2 to the size to show the border...
-        # This also means we need to correct the indices.
-        # Border and snake body will be white. Snake
-        # head will half gray, and the fruit will be
-        # a darker gray.
         playedGame = np.zeros(shape=(len(frames), (self.boardSize + 2) * scale, (self.boardSize + 2) * scale),
                               dtype=np.uint8)
-        # Put the border...
-        playedGame[:, :scale, :] = 50
-        playedGame[:, -scale:, :] = 50
-        playedGame[:, :, :scale] = 50
-        playedGame[:, :, -scale:] = 50
         filename = os.path.join('./Snake/Data/gifs', filename)
         # The fruit locations are only added every time the
         # snake eats, so we have to see when it eats, given
         # when the snake gets longer...
         with imageio.get_writer(filename, mode='I') as writer:
-            fruitIndex = 0
             for i, frame in enumerate(frames):
-                # Increment the fruit if eaten
-                if i > 0 and len(frames[i]) > len(frames[i - 1]):
-                    fruitIndex += 1
-                # We need to expand up the frame up according
-                # to the scale, which means adding locations...
-                # The cells should mark the upper left corner.
-                offsetSnakeBody = [((r + 1) * scale, (c + 1) * scale) for r, c in frame[:-1]]
-                # Now go through each cell, and "fill in"...
-                fullBodyLocs = []
-                for r, c in offsetSnakeBody:
-                    fullBodyLocs.extend(product(range(r, r + scale), range(c, c + scale)))
-                # The format is the reverse of zip
-                formattedBody = tuple(zip(*[(i, r, c) for r, c in fullBodyLocs]))
-
-                # Format the fruit location and head location the same way
-                fruitR, fruitC = self.fruitLocs[fruitIndex]
-                formattedFruitLoc = tuple(zip(*[(i, r, c) for r, c in
-                                                product(range((fruitR + 1) * scale, (fruitR + 2) * scale),
-                                                        range((fruitC + 1) * scale, (fruitC + 2) * scale))]))
-                headR, headC = frame[-1]
-                formattedHeadLoc = tuple(zip(*[(i, r, c) for r, c in
-                                               product(range((headR + 1) * scale, (headR + 2) * scale),
-                                                       range((headC + 1) * scale, (headC + 2) * scale))]))
-                playedGame[formattedBody] = 255
-                playedGame[formattedHeadLoc] = 220
-                playedGame[formattedFruitLoc] = 128
-
-                # Append to the GIF
+                # Convert the frame to an image-like ndarray...
+                playedGame[i] = self.produceBoardFrame(frame, scale=scale)
+                # Append to the writer...
                 writer.append_data(playedGame[i])
 
     def boardToString(self, snakeLocs: list):
