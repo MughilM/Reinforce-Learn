@@ -1,14 +1,14 @@
-##################################################
-# File: SnakeQTable.py
-# Author: Mughil Pari
-# Location: /Snake/
-#
-# This file implements the Q-table for the
-# snake game. The states are coded as 11-bit
-# strings, and there are only 3 actions
-# (forward, left, and right). Thus, the Q-table
-# is a pretty straightforward 2^11 by 3 table.
-##################################################
+"""
+File: SnakeQTable.py
+Location: /Snake/
+Creation Date: 2020-09-30
+
+This file implements the Q-table for the
+snake game. The states are coded as 11-bit
+strings, and there are only 3 actions
+(forward, left, and right). Thus, the Q-table
+is a pretty straightforward 2^11 by 3 table.
+"""
 
 import numpy as np
 from .SnakeAgent import SnakeAgent

@@ -1,15 +1,15 @@
-##################################################
-# File: SnakeAgent.py
-# Author: Mughil Pari
-# Location: /Snake/
-#
-# This file implements the snake agent
-# (Hello, this is Snake) for the snake game. This
-# has the methods which actually play the game.
-# The actual snake mechanices are implemented
-# here, while the environment simply houses the
-# board and the food.
-##################################################
+"""
+File: SnakeAgent.py
+Location: /Snake/
+Creation Date: 2020-09-19
+
+This file implements the snake agent
+(Hello, this is Snake) for the snake game. This
+has the methods which actually play the game.
+The actual snake mechanices are implemented
+here, while the environment simply houses the
+board and the food.
+"""
 
 from .SnakeEnv import SnakeGame
 

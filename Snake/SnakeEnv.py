@@ -1,17 +1,17 @@
-######################################################
-# File: SnakeEnv.py
-# Creation Date: 20/09/2020
-# Location: /Snake/
-#
-# This file implements the simple environment
-# for the snake game. It only has the game board's
-# properties, because the snake can be considered an
-# agent himself. Thus, for the environment, we only
-# store the size of the board and the location of the
-# fruit. It also provides capability to export the
-# played game as a GIF, given the locations
-# of the snake at each frame.
-######################################################
+"""
+File: SnakeEnv.py
+Location: /Snake/
+Creation Date: 2020-09-17
+
+This file implements the simple environment
+for the snake game. It only has the game board's
+properties, because the snake can be considered an
+agent himself. Thus, for the environment, we only
+store the size of the board and the location of the
+fruit. It also provides capability to export the
+played game as a GIF, given the locations
+of the snake at each frame.
+"""
 
 import numpy as np
 from itertools import product
