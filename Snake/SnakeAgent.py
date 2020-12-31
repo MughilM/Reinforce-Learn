@@ -86,7 +86,7 @@ class SnakeAgent:
         If the move leads to a fruit, it eats the fruit,
         the snake gets longer,
         :param turn:
-        :return:
+        :return: The reward and whether it was a game over...
         """
         if self.gameOver:
             print('Game is over! Please reset!')
