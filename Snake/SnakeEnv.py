@@ -46,11 +46,16 @@ class SnakeGame:
         """
         Resets the board along with the agent.
         A new fruit is placed on the empty board...
-        :return:
+        :return: The starting state of the environment
         """
         self.agent.reset()
         self.placeFruit(self.agent.currentFrame)
-        return
+        startState = {
+            'boardSize': self.boardSize,
+            'snakeLocs': self.agent.currentFrame,
+            'fruitLoc': self.fruitLoc
+        }
+        return startState
 
     def placeFruit(self, snakeLocs):
         """
@@ -91,6 +96,7 @@ class SnakeGame:
             self.placeFruit(self.agent.currentFrame)
         # Return the new state as dictionary, along with reward and game over...
         newState = {
+            'boardSize': self.boardSize,
             'snakeLocs': self.agent.currentFrame,
             'fruitLoc': self.fruitLoc
         }
