@@ -17,7 +17,7 @@ import copy
 
 
 class SnakeAgent:
-    def __init__(self, environment: SnakeGame):
+    def __init__(self):
         self.env = environment
         self.snakeFrames = []
         self.encodedStates = []

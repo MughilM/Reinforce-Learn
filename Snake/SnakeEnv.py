@@ -17,10 +17,11 @@ import numpy as np
 from itertools import product
 import imageio
 import os
+from .SnakeAgent import SnakeAgent
 
 
 class SnakeGame:
-    def __init__(self, boardSize=10):
+    def __init__(self, snakeAgent: SnakeAgent, boardSize=10):
         """
         Saves the board size and randomly
         places the fruit. Same functionality
