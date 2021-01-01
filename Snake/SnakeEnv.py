@@ -30,9 +30,7 @@ class SnakeGame:
         required.
         :param boardSize: Side length of board
         """
-        # Create directories...
-        os.makedirs('./Snake/Data/imgs/', exist_ok=True)
-        os.makedirs('./Snake/Data/gifs/', exist_ok=True)
+        self.agent = snakeAgent
         # Force a minimum size of 5...
         if boardSize < 5:
             raise ValueError("Board size of {} is too small!".format(boardSize))
@@ -40,19 +38,18 @@ class SnakeGame:
         # Don't pay attention to the values here.
         # They'll get reset. It's just so my IDE can
         # recognize the data types used :)
-        self.fruitLocs = []
+        self.fruitLoc = ()
         self.placedFruit = False
         self.reset()
 
     def reset(self):
         """
-        Resets the board. Nothing
-        to do here as the board itself
-        doesn't change.
+        Resets the board along with the agent.
+        A new fruit is placed on the empty board...
         :return:
         """
-        self.placedFruit = False
-        self.fruitLocs = []
+        self.agent.reset()
+        self.placeFruit(self.agent.currentFrame)
         return
 
     def placeFruit(self, snakeLocs):
@@ -68,8 +65,36 @@ class SnakeGame:
                      if (r, c) not in snakeLocs]
         # Randomly select one...
         selectionIndex = np.random.choice(len(validLocs))
-        self.fruitLocs.append(validLocs[selectionIndex])
+        self.fruitLoc = validLocs[selectionIndex]
         self.placedFruit = True
+        return
+
+    def stepForward(self, action):
+        """
+        This function steps forward one time step in the environment.
+        It will use the given action and apply it to the contained agent above.
+        The agent will return the reward and whether it resulted in a game over.
+        The environment's state is also passed into the function to use extra
+        variables. New fruit placement is done here, not in the makeMove()
+        function.
+        :param action: The action to take...One of 'F', 'L', 'R'
+        :return: The new state (as dictionary), reward, and game over.
+        The new state is like {'snakeLocs': ..., 'fruit loc': ...}. Any
+        preprocessing that is needed for, say, Q-learning should be done
+        separately...
+        """
+        if self.agent.gameOver:
+            raise ValueError('Game is already over. Please reset!')
+        reward, gameOver = self.agent.makeMove(action, env=self)
+        # We check to see if the snake grow by looking at the reward...
+        if reward > 0:
+            self.placeFruit(self.agent.currentFrame)
+        # Return the new state as dictionary, along with reward and game over...
+        newState = {
+            'snakeLocs': self.agent.currentFrame,
+            'fruitLoc': self.fruitLoc
+        }
+        return newState, reward, gameOver
 
     def produceBoardFrame(self, frame, startLength=3, scale=1):
         """
