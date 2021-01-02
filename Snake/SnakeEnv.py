@@ -102,57 +102,6 @@ class SnakeGame:
         }
         return newState, reward, gameOver
 
-    def produceBoardFrame(self, frame, startLength=3, scale=1):
-        """
-        This method produces ONE frame in image format of
-        the current game state, including the snake and fruit.
-        The starting length of the snake is needed to compute
-        the correct fruit location.
-        :param frame: A list of tuples (r, c) of the snake locations.
-        The LAST one is assumed to be the head.
-        :param startLength: The starting length of snake. Default 3.
-        :param scale: How much to "blow up" the image. Depends on
-        the board size. Default no scale at 1.
-        :return: An ndarray (board size + 2, board size + 2), and scaled up,
-        colored in grayscale of the snake...
-        """
-        snakeLength = len(frame)
-        fruitIndex = snakeLength - startLength
-        fruitR, fruitC = self.fruitLocs[fruitIndex]
-        gameFrame = np.zeros(shape=((self.boardSize + 2) * scale, (self.boardSize + 2) * scale),
-                             dtype=np.uint8)
-        # Put the border...
-        gameFrame[:scale, :] = 50
-        gameFrame[-scale:, :] = 50
-        gameFrame[:, :scale] = 50
-        gameFrame[:, -scale:] = 50
-        # Upscale the frame indices so that each original coordinate
-        # will now represent the upper left corner of a "box".
-        offsetSnakeBody = [((r + 1) * scale, (c + 1) * scale) for r, c in frame[:-1]]
-        # Now add the rest of each box...
-        fullBodyLocs = []
-        for r, c in offsetSnakeBody:
-            fullBodyLocs.extend(product(range(r, r + scale), range(c, c + scale)))
-        # To easily assign values to the gameFrame, a change
-        # of format is necessary...
-        formattedBody = tuple(zip(*[(r, c) for r, c in fullBodyLocs]))
-        # The head and the fruit are different colors, so
-        # format those the same way...
-        formattedFruitLoc = tuple(zip(*[(r, c) for r, c in
-                                        product(range((fruitR + 1) * scale, (fruitR + 2) * scale),
-                                                range((fruitC + 1) * scale, (fruitC + 2) * scale))]))
-        headR, headC = frame[-1]
-        formattedHeadLoc = tuple(zip(*[(r, c) for r, c in
-                                       product(range((headR + 1) * scale, (headR + 2) * scale),
-                                               range((headC + 1) * scale, (headC + 2) * scale))]))
-        # The body is white, the head is slightly
-        # darker, the fruit is even more darker...
-        gameFrame[formattedBody] = 255
-        gameFrame[formattedHeadLoc] = 220
-        gameFrame[formattedFruitLoc] = 128
-
-        return gameFrame
-
     def exportGIF(self, filename: str, frames: list, scale=1):
         """
         Takes the previous states and exports them
