@@ -147,7 +147,7 @@ class SnakeGame:
         gameStr[:, 0] = '#'
         gameStr[:, -1] = '#'
         # 's' for snake body, 'h' for haed, 'f' for fruit
-        gameStr[self.fruitLocs[-1][0] + 1, self.fruitLocs[-1][1] + 1] = 'f'
+        gameStr[self.fruitLoc[0] + 1, self.fruitLoc[1] + 1] = 'f'
         for r, c in snakeLocs[:-1]:
             gameStr[r + 1, c + 1] = 's'
         gameStr[snakeLocs[-1][0] + 1, snakeLocs[-1][1] + 1] = 'h'

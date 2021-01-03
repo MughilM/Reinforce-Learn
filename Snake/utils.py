@@ -12,6 +12,7 @@ the GIFs for when a game is played.
 """
 import numpy as np
 from itertools import product
+import os
 
 
 def produceBoardFrame(snakeGameState: dict, scale=1):
@@ -70,3 +71,32 @@ def produceBoardFrame(snakeGameState: dict, scale=1):
 
     return gameFrame
 
+def exportGIF(frames, filename, scale=1):
+    """
+    This method takes in a list of snake frames, either in list of dictionaries form
+    (outputted from the stepForward), or as a .npy file, where the above method has
+    already been run on all the frames and has been saved somewhere.
+    :param frames: List of state dictionaries from stepForward output or
+    path to .npy file.
+    :param filename: The .gif file to write to.
+    :param scale: How much to blow up the GIF. This depends on board size.
+    :return:
+    """
+    if not filename.endswith('.gif'):
+        filename += '.gif'
+    filename = os.path.join('./Snake/Data/gifs', filename)
+    # Find the type of 'frames'
+    if isinstance(frames, list):
+        # We have to produce the frames as we go along...
+        with imageio.get_writer(filename, mode='I') as writer:
+            for frame in frames:
+                gameStep = produceBoardFrame(frame)
+                writer.append_data(gameStep)
+    elif isinstance(frames, str):
+        # Read the frames from the npy file...
+        allFrames = np.load(frames)
+        with imageio.get_writer(filename, mode='I') as writer:
+            for frame in allFrames:
+                writer.append_data(frame)
+    else:
+        raise ValueError(f'Frames of type {type(frames)} not allowed!')
