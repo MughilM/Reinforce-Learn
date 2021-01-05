@@ -19,26 +19,26 @@ import sys
 import pprint
 
 agent = SnakeAgent()
-env = SnakeGame(agent, boardSize=15)
+env = SnakeGame(agent, boardSize=10)
 # Simulate the game, asking for
 # direction in each frame...
 allSnakeStates = []
+state = env.reset()
 while True:
+    print(boardToString(state))
     direction = input('Enter forward (F), left (L), right (R) or quit (Q): ')
     if direction != '':
         if direction == 'Q':
             print('Exporting to GIF...')
-            exportGIF('game.gif', allSnakeStates, scale=20)
+            exportGIF(allSnakeStates, 'game.gif', scale=20)
             print('Your score:', agent.score)
             sys.exit(1)
-        state = env.stepForward(direction)
+        state, reward, gameOver = env.stepForward(direction)
         allSnakeStates.append(state)
+        print(boardToString(state))
         if gameOver:
-            print('Exporting to GIF...')
-            env.exportGIF('game.gif', agent.snakeFrames, scale=20)
-            print('Getting game memory in states...')
-            codedStates = agent.getGameMemory()
-            pprint.pprint(codedStates)
             print('Game over you died!')
             print('Your score:', agent.score)
+            print('Exporting to GIF...')
+            exportGIF(allSnakeStates, 'game.gif', scale=20)
             sys.exit(1)

@@ -10,6 +10,7 @@ any other category can also be placed here. For example, when
 I created this file, the intention was to place the code to generate
 the GIFs for when a game is played.
 """
+import imageio
 import numpy as np
 from itertools import product
 import os
@@ -90,7 +91,7 @@ def exportGIF(frames, filename, scale=1):
         # We have to produce the frames as we go along...
         with imageio.get_writer(filename, mode='I') as writer:
             for frame in frames:
-                gameStep = produceBoardFrame(frame)
+                gameStep = produceBoardFrame(frame, scale=scale)
                 writer.append_data(gameStep)
     elif isinstance(frames, str):
         # Read the frames from the npy file...
@@ -100,3 +101,29 @@ def exportGIF(frames, filename, scale=1):
                 writer.append_data(frame)
     else:
         raise ValueError(f'Frames of type {type(frames)} not allowed!')
+
+
+def boardToString(snakeState: dict):
+    """
+    Given the locations of the snake, prints
+    out the board.
+    :param snakeState: The state dictionary (outputted from stepForward)
+    :return: A formatted string of the board
+    """
+    # Extract the data from the dictionary
+    boardSize = snakeState['boardSize']
+    snakeLocs = snakeState['snakeLocs']
+    fruitLoc = snakeState['fruitLoc']
+    gameStr = np.zeros(shape=(boardSize + 2, boardSize + 2), dtype=str)
+    gameStr[:, :] = '-'
+    # Hashtags for board border...
+    gameStr[0, :] = '#'
+    gameStr[-1, :] = '#'
+    gameStr[:, 0] = '#'
+    gameStr[:, -1] = '#'
+    # 's' for snake body, 'h' for haed, 'f' for fruit
+    gameStr[fruitLoc[0] + 1, fruitLoc[1] + 1] = 'f'
+    for r, c in snakeLocs[:-1]:
+        gameStr[r + 1, c + 1] = 's'
+    gameStr[snakeLocs[-1][0] + 1, snakeLocs[-1][1] + 1] = 'h'
+    return '\n'.join(''.join(row) for row in gameStr)

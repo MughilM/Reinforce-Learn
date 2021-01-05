@@ -10,9 +10,6 @@ The actual snake mechanices are implemented
 here, while the environment simply houses the
 board and the food.
 """
-
-from .SnakeEnv import SnakeGame
-
 import copy
 
 
@@ -66,7 +63,7 @@ class SnakeAgent:
         self.direction = 'R'
         self.gameOver = False
 
-    def makeMove(self, turn, env: SnakeGame):
+    def makeMove(self, turn, env):
         """
         The meat method. Given a turn ('F', 'L', 'R'),
         moves the snake in that direction by one
@@ -75,8 +72,8 @@ class SnakeAgent:
         0 otherwise. The locations are all updated automatically.
         If the move leads to a fruit, it eats the fruit,
         the snake gets longer,
-        :param turn:
-        :param env:
+        :param turn: One of 'F', 'L', or 'R'
+        :param env: An instance of SnakeGame
         :return: The reward and whether it was a game over...
         """
         if turn not in self.actionList:
@@ -84,7 +81,7 @@ class SnakeAgent:
         if self.gameOver:
             print('Game is over! Please reset!')
             return
-        newState = copy.deepcopy(self.currentFrame[-1])
+        newState = copy.deepcopy(self.currentFrame)
         newDirection = self.DIR_RESULT[self.direction][turn]
         for i in range(self.score - 1):
             newState[i] = newState[i + 1]
@@ -232,5 +229,3 @@ class SnakeAgent:
             _, action, reward, gameOver = self.actionsRewards[i]
             memory.append((currentState, action, reward, nextState, gameOver))
         return memory
-
-
