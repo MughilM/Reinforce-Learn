@@ -72,6 +72,7 @@ def produceBoardFrame(snakeGameState: dict, scale=1):
 
     return gameFrame
 
+
 def exportGIF(frames, filename, scale=1):
     """
     This method takes in a list of snake frames, either in list of dictionaries form
@@ -88,11 +89,16 @@ def exportGIF(frames, filename, scale=1):
     filename = os.path.join('./Snake/Data/gifs', filename)
     # Find the type of 'frames'
     if isinstance(frames, list):
-        # We have to produce the frames as we go along...
-        with imageio.get_writer(filename, mode='I') as writer:
-            for frame in frames:
-                gameStep = produceBoardFrame(frame, scale=scale)
-                writer.append_data(gameStep)
+        # Either it's a list of dictionaries or ndarrays...
+        if isinstance(frames[0], dict):
+            with imageio.get_writer(filename, mode='I') as writer:
+                for frame in frames:
+                    gameStep = produceBoardFrame(frame, scale=scale)
+                    writer.append_data(gameStep)
+        else:
+            with imageio.get_writer(filename, mode='I') as writer:
+                for frame in frames:
+                    writer.append_data(frame)
     elif isinstance(frames, str):
         # Read the frames from the npy file...
         allFrames = np.load(frames)

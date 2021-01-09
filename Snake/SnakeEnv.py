@@ -38,7 +38,7 @@ class SnakeGame:
         # Don't pay attention to the values here.
         # They'll get reset. It's just so my IDE can
         # recognize the data types used :)
-        self.fruitLoc = ()
+        self.fruitLoc = (0, 0)
         self.placedFruit = False
         self.reset()
 
@@ -101,3 +101,85 @@ class SnakeGame:
             'fruitLoc': self.fruitLoc
         }
         return newState, reward, gameOver
+
+    def encodeCurrentState(self):
+        """
+        Primarily internal method. It will take the current
+        state of the snake, and encode it according to our rules.
+        It will use the most recent location of the snake in
+        the environment variables.
+        :return: The state coded as an 11-bit string:
+            - Is there immediate danger in front, left,
+            or right of the snake?
+            - The direction of the fruit (up, down, left,
+            right). From a top-down perspective. More
+            than one is possible.
+            - The direction of the snake (up, down, left,
+            right)
+        Thus, the coding is [danger ==> 'FLR']
+        [fruit direction ==> 'UDLR']
+        [snake direction ==> 'UDLR'] (mutually exclusive)
+        """
+        directionCode = {
+            'U': '1000',
+            'D': '0100',
+            'L': '0010',
+            'R': '0001'
+        }
+        coding = ''
+        # For immediate danger, we look at the snake head, and see
+        # if either the edge of the board or a snake body part is
+        # next to it. The array is in FLR order.
+        head = self.agent.currentFrame[-1]
+        snakeDirection = self.agent.direction
+        if snakeDirection == 'U':
+            proximity = [
+                (head[0] - 1, head[1]),
+                (head[0], head[1] - 1),
+                (head[0], head[1] + 1)
+            ]
+        elif snakeDirection == 'D':
+            proximity = [
+                (head[0] + 1, head[1]),
+                (head[0], head[1] + 1),
+                (head[0], head[1] - 1)
+            ]
+        elif snakeDirection == 'L':
+            proximity = [
+                (head[0], head[1] - 1),
+                (head[0] + 1, head[1]),
+                (head[0] - 1, head[1])
+            ]
+        else:
+            proximity = [
+                (head[0], head[1] + 1),
+                (head[0] - 1, head[1]),
+                (head[0] + 1, head[1])
+            ]
+        # Lotta stuff going on here:
+        #   Check if each location is in the snake body
+        #   or off the board. Convert the Trues and Falses
+        # into a bit string we can directly attach to our coding.
+        dangers = ((r, c) in self.agent.currentFrame or not (0 <= r < self.boardSize and 0 <= c < self.boardSize)
+                   for r, c in proximity)
+        coding += ''.join(map(lambda x: str(int(x)), dangers))
+        # Now the fruit location. The fruit can't be both above and
+        # below the snake, so append in pairs.
+        fruitR, fruitC = self.fruitLoc
+        if head[0] > fruitR:
+            coding += '10'
+        elif head[0] < fruitR:
+            coding += '01'
+        else:
+            coding += '00'  # The fruit is on the same row
+        # Left/right
+        if head[1] > fruitC:
+            coding += '10'
+        elif head[1] < fruitC:
+            coding += '01'
+        else:
+            coding += '00'
+
+        # Now the direction of the snake...Straightforward...
+        coding += directionCode[snakeDirection]
+        return coding
