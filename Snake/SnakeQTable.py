@@ -13,6 +13,8 @@ is a pretty straightforward 2^11 by 3 table.
 import numpy as np
 from .SnakeAgent import SnakeAgent
 from .SnakeEnv import SnakeGame
+from .utils import *
+from typing import List
 
 
 class SnakeQTable:
@@ -20,14 +22,14 @@ class SnakeQTable:
         self.gamesPlayed = 0
         self.maxScore = 0
         self.epsilon = 1
-        self.learningRate = 0.05
+        self.learningRate = 0.1
         # Linear decay for epsilon, minimum of 0.1
         self.epsilonDecay = 0.0005
         self.minEpsilon = 0.01
         self.gamma = 0.9
         self.Qtable = np.random.random((2 ** 11, 3))
-        self.env = SnakeGame(boardSize=boardSize)
-        self.agent = SnakeAgent(environment=self.env)
+        self.agent = SnakeAgent()
+        self.env = SnakeGame(snakeAgent=self.agent, boardSize=boardSize)
 
     def playGame(self, makeGif=False, random=True):
         """
@@ -39,10 +41,23 @@ class SnakeQTable:
         :return: The encoded game memory.
         """
         self.gamesPlayed += 1
+        stateCounts = 1
         # Reset the agent
-        self.agent.reset()
-        while not self.agent.gameOver and len(self.agent.snakeFrames) < 10000:
-            currentEncodedState = self.agent.encodeCurrentState()
+        currentState = self.env.reset()
+        # Only save the frames if we're making a GIF...
+        allSnakeStates = []
+        if makeGif:
+            allSnakeStates = [produceBoardFrame(currentState, scale=15)]  # One frame with the first state...
+        gameOver = False
+        # This holds the encoded game memory in a format for Q-learning...
+        # It goes like [state, action, reward, nextState, gameOver]
+        gameMemory: List[List] = []
+        while not gameOver and stateCounts < 10000:
+            currentEncodedState = self.env.encodeCurrentState()
+            # If it's at least the second state, then it was the "next state"
+            # of the previous state/action...
+            if len(gameMemory) > 0:
+                gameMemory[-1][3] = currentEncodedState
             # With an epsilon% chance, choose
             # a random action. Otherwise, choose
             # the action with the largest Q-value.
@@ -52,16 +67,21 @@ class SnakeQTable:
                 row = int(currentEncodedState, 2)
                 rowData = self.Qtable[row]
                 action = self.agent.actionList[np.argmax(rowData)]
-            reward, gameOver = self.agent.makeMove(action)
+            currentState, reward, gameOver = self.env.stepForward(action)
+            if makeGif:
+                allSnakeStates.append(produceBoardFrame(currentState, scale=15))
+            # Append the state/action/reward/gameOver.
+            # Put a placeholder for the next state (gets filled in at the start of the next loop)
+            gameMemory.append([currentEncodedState, action, reward, '', gameOver])
+            stateCounts += 1
         # Game is over, so return the game memory...
         if self.agent.score > self.maxScore:
             self.maxScore = self.agent.score
-            self.env.exportGIF(f'BestGame.gif', self.agent.snakeFrames, scale=15)
         if makeGif:
-            self.env.exportGIF(f'Game{self.gamesPlayed}.gif', self.agent.snakeFrames, scale=15)
-            print(f'Game {self.gamesPlayed} scored {self.agent.score}! (Total states: {len(self.agent.snakeFrames)}, '
+            exportGIF(frames=allSnakeStates, filename=f'Game{self.gamesPlayed}.gif')
+            print(f'Game {self.gamesPlayed} scored {self.agent.score}! '
                   f'Best Score: {self.maxScore})')
-        return self.agent.getGameMemory()
+        return gameMemory
 
     def updateTable(self, gameMemory):
         """
@@ -71,11 +91,17 @@ class SnakeQTable:
         in a game over.
         :return:
         """
-        for currState, turn, reward, nextState, gameOver in gameMemory:
+        for memory in gameMemory:
+            currState, turn, reward, nextState, gameOver = tuple(memory)
             currRow = int(currState, 2)
             currCol = self.agent.actionList.index(turn)
-            nextRow = self.Qtable[int(nextState, 2)]
-            maxNextQValue = max(nextRow)
+            # If it's a game over, there is no maxNextQValue...
+            # ...otherwise, calculate normally...
+            if nextState == '':
+                maxNextQValue = 0
+            else:
+                nextRow = self.Qtable[int(nextState, 2)]
+                maxNextQValue = max(nextRow)
             # Update, Q(s, a) = Q(s, a) + alpha * ( r(s, a) + gamma * maxNextQValue - Q(s,a) )...
             self.Qtable[currRow, currCol] += self.learningRate * (reward + self.gamma * maxNextQValue -
                                                                   self.Qtable[currRow, currCol])
