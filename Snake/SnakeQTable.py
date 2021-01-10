@@ -14,16 +14,15 @@ import numpy as np
 from .SnakeAgent import SnakeAgent
 from .SnakeEnv import SnakeGame
 from .utils import *
-from typing import List, Tuple
+from typing import List
 
-import numpy as np
 
 class SnakeQTable:
     def __init__(self, boardSize=20):
         self.gamesPlayed = 0
         self.maxScore = 0
         self.epsilon = 1
-        self.learningRate = 0.05
+        self.learningRate = 0.1
         # Linear decay for epsilon, minimum of 0.1
         self.epsilonDecay = 0.0005
         self.minEpsilon = 0.01
@@ -48,7 +47,7 @@ class SnakeQTable:
         # Only save the frames if we're making a GIF...
         allSnakeStates = []
         if makeGif:
-            allSnakeStates = [produceBoardFrame(snakeGameState=currentState)]  # One frame with the first state...
+            allSnakeStates = [produceBoardFrame(currentState, scale=15)]  # One frame with the first state...
         gameOver = False
         # This holds the encoded game memory in a format for Q-learning...
         # It goes like [state, action, reward, nextState, gameOver]
@@ -70,7 +69,7 @@ class SnakeQTable:
                 action = self.agent.actionList[np.argmax(rowData)]
             currentState, reward, gameOver = self.env.stepForward(action)
             if makeGif:
-                allSnakeStates.append(produceBoardFrame(currentState))
+                allSnakeStates.append(produceBoardFrame(currentState, scale=15))
             # Append the state/action/reward/gameOver.
             # Put a placeholder for the next state (gets filled in at the start of the next loop)
             gameMemory.append([currentEncodedState, action, reward, '', gameOver])
@@ -79,7 +78,7 @@ class SnakeQTable:
         if self.agent.score > self.maxScore:
             self.maxScore = self.agent.score
         if makeGif:
-            exportGIF(frames=allSnakeStates, filename=f'Game{self.gamesPlayed}.gif', scale=15)
+            exportGIF(frames=allSnakeStates, filename=f'Game{self.gamesPlayed}.gif')
             print(f'Game {self.gamesPlayed} scored {self.agent.score}! '
                   f'Best Score: {self.maxScore})')
         return gameMemory
@@ -92,11 +91,17 @@ class SnakeQTable:
         in a game over.
         :return:
         """
-        for currState, turn, reward, nextState, gameOver in gameMemory:
+        for memory in gameMemory:
+            currState, turn, reward, nextState, gameOver = tuple(memory)
             currRow = int(currState, 2)
             currCol = self.agent.actionList.index(turn)
-            nextRow = self.Qtable[int(nextState, 2)]
-            maxNextQValue = max(nextRow)
+            # If it's a game over, there is no maxNextQValue...
+            # ...otherwise, calculate normally...
+            if nextState == '':
+                maxNextQValue = 0
+            else:
+                nextRow = self.Qtable[int(nextState, 2)]
+                maxNextQValue = max(nextRow)
             # Update, Q(s, a) = Q(s, a) + alpha * ( r(s, a) + gamma * maxNextQValue - Q(s,a) )...
             self.Qtable[currRow, currCol] += self.learningRate * (reward + self.gamma * maxNextQValue -
                                                                   self.Qtable[currRow, currCol])
@@ -109,14 +114,13 @@ class SnakeQTable:
 
 if __name__ == '__main__':
     qtableObj = SnakeQTable()
-    gamesToPlay = 1
+    gamesToPlay = 10000
     for game in range(1, gamesToPlay + 1):
         print(f'\rGame {game}...', end='')
         gameMem = qtableObj.playGame()
-        print(gameMem)
-        # qtableObj.updateTable(gameMem)
-    # print('\nFinal game...', 'Current epsilon is', qtableObj.epsilon)
-    # gameMem = qtableObj.playGame(makeGif=True, random=False)
-    # qtableObj.saveQTable(f'{gamesToPlay}Played.csv')
+        qtableObj.updateTable(gameMem)
+    print('\nFinal game...', 'Current epsilon is', qtableObj.epsilon)
+    gameMem = qtableObj.playGame(makeGif=True, random=False)
+    qtableObj.saveQTable(f'{gamesToPlay}Played.csv')
 
 
