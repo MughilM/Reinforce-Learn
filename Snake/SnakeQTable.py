@@ -15,6 +15,7 @@ from .SnakeAgent import SnakeAgent
 from .SnakeEnv import SnakeGame
 from .utils import *
 from typing import List
+import os
 
 
 class SnakeQTable:
@@ -27,7 +28,7 @@ class SnakeQTable:
         self.epsilonDecay = 0.0005
         self.minEpsilon = 0.01
         self.gamma = 0.9
-        self.Qtable = np.random.random((2 ** 11, 3))
+        self.Qtable = np.zeros((2 ** 11, 3), dtype=float)
         self.agent = SnakeAgent()
         self.env = SnakeGame(snakeAgent=self.agent, boardSize=boardSize)
 
@@ -74,11 +75,12 @@ class SnakeQTable:
             # Put a placeholder for the next state (gets filled in at the start of the next loop)
             gameMemory.append([currentEncodedState, action, reward, '', gameOver])
             stateCounts += 1
-        # Game is over, so return the game memory...
+        # Game is over, so add the last state to the game memory and return...
+        gameMemory[-1][3] = self.env.encodeCurrentState()
         if self.agent.score > self.maxScore:
             self.maxScore = self.agent.score
         if makeGif:
-            exportGIF(frames=allSnakeStates, filename=f'Game{self.gamesPlayed}.gif')
+            exportGIF(frames=allSnakeStates, filename=os.path.join('QTable', f'Game{self.gamesPlayed}.gif'))
             print(f'Game {self.gamesPlayed} scored {self.agent.score}! '
                   f'Best Score: {self.maxScore})')
         return gameMemory
@@ -96,12 +98,10 @@ class SnakeQTable:
             currRow = int(currState, 2)
             currCol = self.agent.actionList.index(turn)
             # If it's a game over, there is no maxNextQValue...
-            # ...otherwise, calculate normally...
-            if nextState == '':
-                maxNextQValue = 0
-            else:
-                nextRow = self.Qtable[int(nextState, 2)]
-                maxNextQValue = max(nextRow)
+            # ...However, we initialized the Q table with zeroes,
+            # so it checks out.
+            nextRow = self.Qtable[int(nextState, 2)]
+            maxNextQValue = max(nextRow)
             # Update, Q(s, a) = Q(s, a) + alpha * ( r(s, a) + gamma * maxNextQValue - Q(s,a) )...
             self.Qtable[currRow, currCol] += self.learningRate * (reward + self.gamma * maxNextQValue -
                                                                   self.Qtable[currRow, currCol])
