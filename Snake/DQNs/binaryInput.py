@@ -99,15 +99,29 @@ class BinaryDQN:
             nextState = self.env.encodeCurrentState()
             # Add the tuple to the memory buffer. If it was a
             # game over, then increment the episode count...
-            self.memory.append([currState, chosenAction, reward, nextState, gameOver])
+            self.memory.append([currState, actionIndex, reward, nextState, gameOver])
+            # If the game is over, reset the environment, increment the
+            # episode count, and decay the epsilon.
             if gameOver:
                 self.env.reset()
                 self.episodeCount += 1
 
 
-
-
-
-
-
-
+    def sampleExperienceReplay(self):
+        """
+        Using the batch size, returns a random sample of the replay. Additionally,
+        it unpacks the states, actions, and returns. This is for easier feeding into
+        the model. It also preprocesses the states...
+        :return: A 5-tuple of the states, actions, rewards, next states, and
+        game overs, each in numpy format.
+        """
+        memoryLength = len(self.memory)
+        # Choose a random set of indices
+        chosenIndices = np.random.choice(np.arange(memoryLength), size=self.batchSize, replace=False)
+        sampledData = np.asarray([self.memory[index] for index in chosenIndices], dtype=object)
+        states = np.vectorize(self.preprocessState)(sampledData[:, 0])  # Should result in (batchSize, 11)
+        actions = sampledData[:, 1].astype(int)
+        rewards = sampledData[:, 2].astype(int)
+        nextStates = np.vectorize(self.preprocessState)(sampledData[:, 4])  # Should also be (batchSize, 11)
+        gameOvers = sampledData[:, 5].astype(int)
+        return states, actions, rewards, nextStates, gameOvers
