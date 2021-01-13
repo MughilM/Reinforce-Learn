@@ -38,11 +38,15 @@ class BinaryDQN:
         self.predictionModel = self.createMethod()  # The model which only gives us Q-value predictions...
 
         print(f'Model Summary\n{self.targetModel.summary()}')
+        print('Compiling models...')
+        self.targetModel.compile(optimizer='adam', loss='mse')
+        self.targetModel.compile(optimizer='adam', loss='mse')
 
         # Epsilon, epsilon decay rate, and minimum epsilon
         self.epsilon = 1
         self.minEpsilon = 0.05
         self.epsilonDecayFactor = 0.997
+        self.gamma = 0.99
 
         # The memory is a deque data structure, where if we add something that
         # exceeds the max length, the oldest element simply gets returned...
@@ -105,7 +109,7 @@ class BinaryDQN:
             if gameOver:
                 self.env.reset()
                 self.episodeCount += 1
-
+                self.epsilon *= self.epsilonDecayFactor
 
     def sampleExperienceReplay(self):
         """
@@ -123,5 +127,30 @@ class BinaryDQN:
         actions = sampledData[:, 1].astype(int)
         rewards = sampledData[:, 2].astype(int)
         nextStates = np.vectorize(self.preprocessState)(sampledData[:, 4])  # Should also be (batchSize, 11)
-        gameOvers = sampledData[:, 5].astype(int)
+        gameOvers = sampledData[:, 5].astype(bool)
         return states, actions, rewards, nextStates, gameOvers
+
+    def trainStep(self):
+        """
+        Trains for just ONE BATCH of memory. If we have reached the number of batches where
+        it's time to replace the prediction with the target, it will do that too.
+        :return: Nothing...
+        """
+        self.addExperienceMemory()  # First add some memory...
+        # Grab the data...
+        states, actions, rewards, nextStates, gameOvers = self.sampleExperienceReplay()
+        # Now, we need to set up our target Q-values. It follows a similar
+        # formula, except anywhere we have game overs, the target is just the
+        # negative reward.
+        nextQValues = self.predictionModel.predict(nextStates)
+        # Get the locations of the max next values...
+        maxNextLocs = np.argmax(nextQValues, axis=1)
+        targetQMatrix = np.copy(nextQValues)
+        maxNextQValues = targetQMatrix[np.arange(targetQMatrix.shape[0]), maxNextLocs]
+        updatedQValues = rewards + self.gamma * maxNextQValues
+        # Update the values in the matrix. the rest stay the same.
+        targetQMatrix[np.arange(targetQMatrix.shape[0]), maxNextLocs] = updatedQValues
+        # All terminal states get a flat negative reward.
+        targetQMatrix[np.arange(targetQMatrix.shape[0])[gameOvers], actions[gameOvers]] = rewards[gameOvers]
+        # Using these target values, train the target model under MSE
+        self.targetModel.train_on_batch(x=states, y=targetQMatrix)
