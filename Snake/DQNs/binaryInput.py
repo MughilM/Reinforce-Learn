@@ -15,9 +15,11 @@ approach, with a target network and a prediction network.
 import numpy as np
 from ..SnakeAgent import SnakeAgent
 from ..SnakeEnv import SnakeGame
+import tensorflow as tf
 from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras.models import Sequential
 from collections import deque
+import pprint
 
 # The methods for producing proper states
 # have already been done for us. For starters,
@@ -47,6 +49,7 @@ class BinaryDQN:
         self.minEpsilon = 0.05
         self.epsilonDecayFactor = 0.997
         self.gamma = 0.99
+        self.lr = 1e-3
 
         # The memory is a deque data structure, where if we add something that
         # exceeds the max length, the oldest element simply gets returned...
@@ -55,13 +58,13 @@ class BinaryDQN:
 
     def createMethod(self):
         model = Sequential()
-        model.add(Input(shape=(11,), name='Snake Input', dtype=int))
-        model.add(Dense(8, activation='relu', name='Hidden Layer 1'))
-        model.add(Dense(8, activation='relu', name='Hidden Layer 2'))
-        model.add(Dense(8, activation='relu', name='Hidden Layer 3'))
+        model.add(Input(shape=(11,), name='SnakeInput', dtype=tf.int32))
+        model.add(Dense(8, activation='relu', name='HiddenLayer1'))
+        model.add(Dense(8, activation='relu', name='HiddenLayer2'))
+        model.add(Dense(8, activation='relu', name='HiddenLayer3'))
         # The output layer is size 3 (F, L, R), and does not have
         # any specific activation, since it's the Q-value...
-        model.add(Dense(3, name='Q Value Output'))
+        model.add(Dense(3, name='QValueOutput'))
         return model
 
     def preprocessState(self, state):
@@ -72,7 +75,7 @@ class BinaryDQN:
         :return: The preprocessed state to be fed into a
         model.
         """
-        return np.asarray(map(int, state))[np.newaxis, :]
+        return np.asarray(list(map(int, state)))[np.newaxis, :]
 
     def addExperienceMemory(self):
         """
@@ -92,7 +95,7 @@ class BinaryDQN:
             currState = self.env.encodeCurrentState()
             # We do an epsilon greedy action selection,
             if np.random.rand() < self.epsilon:
-                actionIndex = np.random.choice(self.agent.actionList)
+                actionIndex = np.random.choice(np.arange(len(self.agent.actionList)))
             else:  # Otherwise, we pass the preprocessed state through the network and choose the best one...
                 actionOutput = self.predictionModel.predict(self.preprocessState(currState))
                 actionIndex = np.argmax(actionOutput[0])
@@ -123,11 +126,11 @@ class BinaryDQN:
         # Choose a random set of indices
         chosenIndices = np.random.choice(np.arange(memoryLength), size=self.batchSize, replace=False)
         sampledData = np.asarray([self.memory[index] for index in chosenIndices], dtype=object)
-        states = np.vectorize(self.preprocessState)(sampledData[:, 0])  # Should result in (batchSize, 11)
+        states = np.squeeze([self.preprocessState(state) for state in sampledData[:, 0]])
         actions = sampledData[:, 1].astype(int)
         rewards = sampledData[:, 2].astype(int)
-        nextStates = np.vectorize(self.preprocessState)(sampledData[:, 4])  # Should also be (batchSize, 11)
-        gameOvers = sampledData[:, 5].astype(bool)
+        nextStates = np.squeeze([self.preprocessState(state) for state in sampledData[:, 3]])  # Should also be (batchSize, 11)
+        gameOvers = sampledData[:, 4].astype(bool)
         return states, actions, rewards, nextStates, gameOvers
 
     def trainStep(self):
@@ -139,18 +142,30 @@ class BinaryDQN:
         self.addExperienceMemory()  # First add some memory...
         # Grab the data...
         states, actions, rewards, nextStates, gameOvers = self.sampleExperienceReplay()
-        # Now, we need to set up our target Q-values. It follows a similar
-        # formula, except anywhere we have game overs, the target is just the
-        # negative reward.
+        # Eventually, when we call "train" on our network, the 'y' should be a
+        # matrix. However, we only have 'y' values for the actions we took, not
+        # the actions we didn't take. It is ideal if we did NOT adjust these weights.
+        # To make sure the non-actions' weights don't change, the 'y' values for
+        # these actions WILL BE THE SAME as the output of the TARGET network..
+        # So start with the outputs from the TARGET network...
+        currentQValues = self.targetModel.predict(states)
+        # Get the maximum Q values for the next states...
         nextQValues = self.predictionModel.predict(nextStates)
-        # Get the locations of the max next values...
-        maxNextLocs = np.argmax(nextQValues, axis=1)
-        targetQMatrix = np.copy(nextQValues)
-        maxNextQValues = targetQMatrix[np.arange(targetQMatrix.shape[0]), maxNextLocs]
-        updatedQValues = rewards + self.gamma * maxNextQValues
-        # Update the values in the matrix. the rest stay the same.
-        targetQMatrix[np.arange(targetQMatrix.shape[0]), maxNextLocs] = updatedQValues
-        # All terminal states get a flat negative reward.
-        targetQMatrix[np.arange(targetQMatrix.shape[0])[gameOvers], actions[gameOvers]] = rewards[gameOvers]
-        # Using these target values, train the target model under MSE
-        self.targetModel.train_on_batch(x=states, y=targetQMatrix)
+        maxNextQ = np.max(nextQValues, axis=1)
+        # On our currentQValues matrix, update the Q-values
+        # corresponding to the actions with the update formula...
+        qValsToUpdate = currentQValues[np.arange(currentQValues.shape[0]), actions]
+        currentQValues[np.arange(currentQValues.shape[0]), actions] = (1 - self.lr) * qValsToUpdate + \
+            self.lr * (rewards + self.gamma * maxNextQ)
+        # Now our matrix is ready for training...
+        self.targetModel.train_on_batch(x=states, y=currentQValues)
+
+if __name__ == '__main__':
+    binaryDQN = BinaryDQN(boardSize=15)
+    binaryDQN.addExperienceMemory()
+    print(f'Experience Memory (Length = {len(binaryDQN.memory)}): {pprint.pformat(binaryDQN.memory)}')
+    states, actions, rewards, nextStates, gameOvers = binaryDQN.sampleExperienceReplay()
+    print(f'States: {states}')
+    print(f'Next States: {nextStates}')
+    binaryDQN.trainStep()
+
