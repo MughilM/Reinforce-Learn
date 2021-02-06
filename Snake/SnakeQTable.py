@@ -16,6 +16,7 @@ from .SnakeEnv import SnakeGame
 from .utils import *
 from typing import List
 import os
+import argparse
 
 
 class SnakeQTable:
@@ -113,14 +114,20 @@ class SnakeQTable:
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--games', type=int, default=5000,
+                        help='The number of games to play')
+
+    args = parser.parse_args()
+
     qtableObj = SnakeQTable()
-    gamesToPlay = 10000
-    for game in range(1, gamesToPlay + 1):
+    for game in range(1, args.games + 1):
         print(f'\rGame {game}...', end='')
         gameMem = qtableObj.playGame()
         qtableObj.updateTable(gameMem)
     print('\nFinal game...', 'Current epsilon is', qtableObj.epsilon)
     gameMem = qtableObj.playGame(makeGif=True, random=False)
-    qtableObj.saveQTable(f'{gamesToPlay}Played.csv')
+    qtableObj.saveQTable(f'{args.games}Played.csv')
 
 
