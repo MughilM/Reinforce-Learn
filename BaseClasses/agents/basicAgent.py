@@ -1,5 +1,5 @@
 """
-File: agent.py
+File: basicAgent.py
 Creation Date: 2021-02-10
 Location: BaseClasses
 
@@ -30,3 +30,12 @@ class Agent:
         """
         raise NotImplementedError('Please provide a way to verify a provided action!')
 
+    def chooseRandomAction(self):
+        """
+        This method provides custom functionality on what "choosing a random
+        action" entails. If it's a discrete action space, it would simply be
+        `np.random.choice`. But if it's continuous, then it may entail choosing
+        a random number between 0 and 1 for example.
+        :return: The randomly chosen action.
+        """
+        raise NotImplementedError('Please provide a way to randomly choose an action!')

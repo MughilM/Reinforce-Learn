@@ -13,7 +13,7 @@ from typing import Dict
 
 
 class Environment:
-    def __init__(self, agents: Dict[str, Agent]):
+    def __init__(self, agents: Dict[str, Agent], **kwargs):
         """
         This environment allows for multiple agents
         in the form of dictionaries. They should
