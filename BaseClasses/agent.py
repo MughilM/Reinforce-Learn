@@ -29,3 +29,4 @@ class Agent:
         :return: True/False, if the action is allowed/not allowed.
         """
         raise NotImplementedError('Please provide a way to verify a provided action!')
+

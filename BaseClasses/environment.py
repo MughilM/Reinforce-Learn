@@ -27,6 +27,11 @@ class Environment:
         return
 
     def reset(self):
+        """
+        Resets the environment (and the agent) and returns the
+        starting state...
+        :return: The starting state of the environment (not encoded)
+        """
         raise NotImplementedError('Please implement a reset function for the environment!')
 
     def stepForward(self, agentName, action):
@@ -44,3 +49,6 @@ class Environment:
 
     def encodeCurrentState(self):
         raise NotImplementedError('Please implement an encoding of the current state!')
+
+    def getNumberOfAgents(self):
+        return len(self.agents.keys())
