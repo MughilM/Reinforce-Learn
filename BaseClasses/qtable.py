@@ -22,8 +22,8 @@ import os
 
 
 class QTable:
-    def __init__(self, rows, cols, discreteAgents: Dict[str, List[DiscreteAgent]], environment: Environment,
-                 epsilon=1, learningRate=0.1, epsilonDecay=0.005,
+    def __init__(self, rows, cols, discreteAgents: Dict[str, DiscreteAgent], environment: Environment,
+                 epsilon=1, learningRate=0.1, epsilonDecay=0.995,
                  minEpsilon=0.01, gamma=0.95, **kwargs):
         self.gamesPlayed = 0
         self.maxScore = 0
@@ -32,6 +32,8 @@ class QTable:
         self.epsilonDecay = epsilonDecay
         self.minEpsilon = minEpsilon
         self.gamma = gamma
+        # Save the discrete action list...
+        self.actionList = discreteAgents[list(discreteAgents.keys())[0]].actionList
 
         # Set up a QTable for each agent...
         self.QTables = {agentName: np.zeros((rows, cols), dtype=float) for agentName in environment.agents.keys()}
@@ -86,6 +88,41 @@ class QTable:
             else:
                 mappedRow = self.mapStateToRow(currentEncodedState)
                 rowData = self.QTables[agentToPlay][mappedRow]
-                action = self.
+                action = self.actionList[np.argmax(rowData)]
+            # Step forward!
+            currentState, reward, gameOver = self.env.stepForward(agentToPlay, action)
+            # Append the state/action/reward/gameOver
+            # Put a placeholder for the next state. It gets filled in at the start of the next loop)
+            gameMemory.append([currentEncodedState, agentToPlay, action, reward, gameOver])
+            stateCounts += 1
+            # It is now the next agent's turn. Increment the index,
+            # but also mod the number of agents we have, for automatic looping...
+            agentIndex = (agentIndex + 1) % numOfAgents
+            agentToPlay = allAgents[agentIndex]
+        # Game is over, so add the last state to the game memory and return...
+        gameMemory[-1][4] = self.env.encodeCurrentState()
+        return gameMemory
+
+    def updateTable(self, gameMemory):
+        """
+        Given a game memory returned from playing a game, this will update the Q-table according
+        to Bellman's equation.
+        :param gameMemory: A single game's memory. Assumed to end in a game over...
+        :return:
+        """
+        for memory in gameMemory:
+            currState, agentName, action, reward, nextState, gameOver = tuple(memory)
+            row = self.mapStateToRow(currState)
+            col = self.actionList.index(action)
+            # If it's a game over, there is no maximum Q-value of the next state.
+            # However, we initialized the Q table with zeroes,
+            # so the line would still check out.
+            nextRow = self.QTables[agentName][self.mapStateToRow(nextState)]
+            maxNextQValue = max(nextRow)
+            # Update, Q(s, a) = Q(s, a) + alpha * ( r(s, a) + gamma * maxNextQValue - Q(s,a) )...
+            self.QTables[agentName][row, col] += self.learningRate * (reward + self.gamma * maxNextQValue -
+                                                                      self.QTables[agentName][row, col])
+        # Decay the equation for the next game...
+        self.epsilon = max(self.epsilon * self.epsilon, self.minEpsilon)
 
 

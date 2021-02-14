@@ -129,5 +129,3 @@ if __name__ == '__main__':
     print('\nFinal game...', 'Current epsilon is', qtableObj.epsilon)
     gameMem = qtableObj.playGame(makeGif=True, random=False)
     qtableObj.saveQTable(f'{args.games}Played.csv')
-
-
