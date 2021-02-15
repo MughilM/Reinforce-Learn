@@ -16,15 +16,17 @@ import numpy as np
 
 from .agents.discreteAgent import DiscreteAgent
 from .environment import Environment
-from agents import *
 from typing import List, Dict
 import os
+import sys
+import shutil
 
 
 class QTable:
-    def __init__(self, rows, cols, discreteAgents: Dict[str, DiscreteAgent], environment: Environment,
+    def __init__(self, outputDir, experimentName, rows, cols, discreteAgents: Dict[str, DiscreteAgent],
+                 environment: Environment, stateLimit=10000,
                  epsilon=1, learningRate=0.1, epsilonDecay=0.995,
-                 minEpsilon=0.01, gamma=0.95, **kwargs):
+                 minEpsilon=0.01, gamma=0.95, overwrite=False):
         self.gamesPlayed = 0
         self.maxScore = 0
         self.epsilon = epsilon
@@ -32,12 +34,31 @@ class QTable:
         self.epsilonDecay = epsilonDecay
         self.minEpsilon = minEpsilon
         self.gamma = gamma
+        self.stateLimit = stateLimit
         # Save the discrete action list...
         self.actionList = discreteAgents[list(discreteAgents.keys())[0]].actionList
 
         # Set up a QTable for each agent...
-        self.QTables = {agentName: np.zeros((rows, cols), dtype=float) for agentName in environment.agents.keys()}
-        self.env = Environment(discreteAgents, **kwargs)
+        self.QTables = {agentName: np.zeros((rows, cols), dtype=float) for agentName in discreteAgents.keys()}
+        self.env = environment
+
+        # Finally, any time we save Q-tables and other things...
+        self.outputDir = outputDir
+        self.expName = experimentName
+        self.overwrite = overwrite
+
+        # If the path exists and overwrite is True, then erase
+        # the contents....
+        if os.path.exists(os.path.join(outputDir, experimentName)):
+            if overwrite:
+                shutil.rmtree(os.path.exists(os.path.join(outputDir, experimentName)))
+            else:
+                print('WARNING: Experiment directory exists and overwriting is disabled! '
+                      'Please rerun with overwriting enabled or provide another experiment'
+                      'name.')
+                sys.exit(1)
+        # Create the directory...
+        os.makedirs(os.path.join(outputDir, experimentName))
 
     def mapStateToRow(self, encodedState):
         """
@@ -48,6 +69,42 @@ class QTable:
         :return: The row of the table.
         """
         raise NotImplementedError('Please provide a mapping from the state to the row!')
+
+    def loadQTables(self):
+        """
+        This method loads the Q-tables that were saved using the
+        `saveQTables` function. They are stored in npz format.
+        :return:
+        """
+        self.QTables = np.load(os.path.join(self.outputDir, self.expName, 'tables.npz'))
+
+    def loadDataArtifacts(self, **kwargs):
+        """
+        This is a user-defined method. Other than the Q tables, if there is anything
+        else that needs to be loaded, then this method should be implemented. This
+        method isn't used by the QTable class, and should be used separately.
+        :return:
+        """
+        raise NotImplementedError('Extra loading of data not implemented yet!')
+
+    def saveQTables(self):
+        """
+        This method saves the Q-tables in .npz format in the directory defined by the
+        experiment name.
+        :return:
+        """
+        # Unpack the Q table dictionary into the keyword arguments. That way,
+        # when the npz is saved, the keys become the agent names...
+        np.savez(os.path.join(self.outputDir, self.expName, 'tables.npz'), **self.QTables)
+
+    def saveDataArtifcats(self, **kwargs):
+        """
+        This method is the save version of `loadDataArtifacts`. If there is anything else
+        other than the Q tables that need to be saved (such as plots or gameplays), this
+        method should be implemented.
+        :return:
+        """
+        raise NotImplementedError('Saving of extra data not implemented!')
 
     def playGame(self, firstTurn):
         """
@@ -75,7 +132,7 @@ class QTable:
         numOfAgents = self.env.getNumberOfAgents()
         gameOver = False
         gameMemory: List[List] = []
-        while not gameOver and stateCounts < 10000:
+        while not gameOver and stateCounts < self.stateLimit:
             currentEncodedState = self.env.encodeCurrentState()
             # If it's at least the second state, then it was the "next state"
             # of the previous state/action...
@@ -124,5 +181,7 @@ class QTable:
                                                                       self.QTables[agentName][row, col])
         # Decay the equation for the next game...
         self.epsilon = max(self.epsilon * self.epsilon, self.minEpsilon)
+
+
 
 
