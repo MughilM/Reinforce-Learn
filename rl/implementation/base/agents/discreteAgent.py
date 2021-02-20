@@ -1,7 +1,7 @@
 """
 File: discreteAgent.py
 Creation Date: 2020-02-13
-Location: BaseClasses/agents
+Location: base/agents
 
 This file contains an agent which would contain a
 DISCRETE set of actions. When we implement a QTable, the agents
@@ -9,7 +9,7 @@ must be discrete, so we can select the best action. Continuous
 agents can only be used with neural networks.
 """
 
-from .basicAgent import Agent
+from basicAgent import Agent
 import numpy as np
 
 

@@ -1,14 +1,14 @@
 """
 File: environment.py
 Creation Date: 2021-02-10
-Location: BaseClasses
+Location: base
 
 This file contains the skeleton class of an environment. All future
 environments are extended from this one. At the bare minimum, an
 environment contains a reset method to return to the starting state.
 """
 
-from .agent import Agent
+from .agents.basicAgent import Agent
 from typing import Dict
 
 

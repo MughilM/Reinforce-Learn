@@ -1,7 +1,7 @@
 """
 File: qtable.py
 Creation Date: 2021-02-13
-Location: BaseClasses
+Location: base
 
 This file contains the base implementation of a QTable.
 By default, each agent has its own table. Two things
@@ -14,8 +14,8 @@ information as possible.
 
 import numpy as np
 
-from .agents.discreteAgent import DiscreteAgent
-from .environment import Environment
+from agents.discreteAgent import DiscreteAgent
+from environment import Environment
 from typing import List, Dict
 import os
 import sys

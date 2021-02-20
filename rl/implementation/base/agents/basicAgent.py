@@ -1,7 +1,7 @@
 """
 File: basicAgent.py
 Creation Date: 2021-02-10
-Location: BaseClasses
+Location: base
 
 This file contains the bare implementation of an agent. All future agents
 should extend from this class. At minimum, an agent needs a reset function,
