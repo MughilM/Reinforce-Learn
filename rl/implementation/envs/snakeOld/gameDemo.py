@@ -1,6 +1,6 @@
 """
 File: gameDemo.py
-Location: /Snake/
+Location: /snakeOld/
 Creation Date: 2020-09-24
 
 The sole purpose is to house a test of the game.

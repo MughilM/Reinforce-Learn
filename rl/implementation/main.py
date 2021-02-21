@@ -9,5 +9,5 @@ the user can provide arguments to fine-tune the experiment, such as whether s/he
 run a Q-Table or a neural network implementation. Various hyperparameters such as number of games,
 gamma, etc. are also available. The corresponding file from /envs/ is grabbed and ran.
 """
-
+from config import *
 # Implementation to come...

@@ -1,6 +1,6 @@
 """
 File: binaryInput.py
-Location: /Snake/DQNs
+Location: /snakeOld/DQNs
 Creation Date: 2020-12-30
 
 This file implements a deep Q-learning network

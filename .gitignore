@@ -139,3 +139,4 @@ dmypy.json
 # need to be tracked...
 Sandbox/
 /rl/Snake/Data/
+/rl/implementation/envs/snakeOld/

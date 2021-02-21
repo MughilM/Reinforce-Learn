@@ -1,6 +1,6 @@
 """
 File: utils.py
-Location: /Snake/
+Location: /snakeOld/
 Creation Date: 2021-01-01
 
 This file houses any utility functions that is filled as needed.
@@ -86,7 +86,7 @@ def exportGIF(frames, filename, scale=1):
     """
     if not filename.endswith('.gif'):
         filename += '.gif'
-    filename = os.path.join('./Snake/Data/gifs', filename)
+    filename = os.path.join('./snakeOld/Data/gifs', filename)
     # Find the type of 'frames'
     if isinstance(frames, list):
         # Either it's a list of dictionaries or ndarrays...

@@ -1,6 +1,6 @@
 """
 File: SnakeQTable.py
-Location: /Snake/
+Location: /snakeOld/
 Creation Date: 2020-09-30
 
 This file implements the Q-table for the

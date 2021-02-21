@@ -1,6 +1,6 @@
 """
 File: SnakeEnv.py
-Location: /Snake/
+Location: /snakeOld/
 Creation Date: 2020-09-17
 
 This file implements the simple environment
