@@ -97,7 +97,7 @@ class QTable:
         # when the npz is saved, the keys become the agent names...
         np.savez(os.path.join(self.outputDir, self.expName, 'tables.npz'), **self.QTables)
 
-    def saveDataArtifcats(self, **kwargs):
+    def saveDataArtifacts(self, **kwargs):
         """
         This method is the save version of `loadDataArtifacts`. If there is anything else
         other than the Q tables that need to be saved (such as plots or gameplays), this

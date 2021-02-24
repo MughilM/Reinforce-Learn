@@ -10,6 +10,7 @@ environment and agent have been added here.
 from ...base.environment import Environment
 from ...base.agents.basicAgent import Agent
 from ...base.agents.discreteAgent import DiscreteAgent
+from ...base.qtable import QTable
 
 from typing import Dict
 import copy
@@ -151,3 +152,41 @@ class SnakeAgent(DiscreteAgent):
         self.direction = newDirection  # Set to new direction...
         self.currentFrame = newState
         return reward, self.gameOver
+
+
+class SnakeQTable(QTable):
+    def __init__(self, outputDir, experimentName, rows, cols, discreteAgents: Dict[str, DiscreteAgent],
+                 environment: Environment, stateLimit=10000,
+                 epsilon=1, learningRate=0.1, epsilonDecay=0.995,
+                 minEpsilon=0.01, gamma=0.95, overwrite=False):
+        super().__init__(outputDir, experimentName, rows, cols, discreteAgents, environment,
+                         stateLimit=stateLimit, epsilon=epsilon, learningRate=learningRate, epsilonDecay=epsilonDecay,
+                         minEpsilon=minEpsilon, gamma=gamma, overwrite=overwrite)
+
+    def mapStateToRow(self, encodedState):
+        """
+        For this implementation of the snake's QTable, the state is encoded as an
+        11-digit binary string, so just convert this to an integer for our row index.
+        :param encodedState: The encoded state returned from SnakeEnv. Should be an 11-digit bit string.
+        :return: The row index.
+        """
+        return int(encodedState, 2)
+
+    def loadDataArtifacts(self, **kwargs):
+        """
+        In `saveDataArtifacts` we saved a list of the scores and a
+        plot. We will just load the score list because we
+        can't do much with a raw plot image.
+        :param kwargs:
+        :return:
+        """
+        pass
+
+    def saveDataArtifacts(self, **kwargs):
+        """
+        For extra artifacts, we can save a list of the scores,
+        along with a plot across the number of the games.
+        :param kwargs:
+        :return:
+        """
+        pass
