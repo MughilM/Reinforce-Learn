@@ -6,6 +6,11 @@ Creation Date: 2021-02-20
 This file holds the rules for the game of the Snake. In order to pair it with
 Q-table and neural network implementations of reinforcement learning, a custom
 environment and agent have been added here.
+The implementation shown here is sourced from the following site:
+https://towardsdatascience.com/how-to-teach-an-ai-to-play-games-deep-reinforcement-learning-28f9b920440a
+This is so I can test my RL system using a known state encoding.
+Once teh tests have gone through, then I will transition to my own representation
+of the snake state.
 """
 from ...base.environment import Environment
 from ...base.agents.basicAgent import Agent
