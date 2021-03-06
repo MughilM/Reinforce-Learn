@@ -101,7 +101,8 @@ class QTable:
         """
         This method is the save version of `loadDataArtifacts`. If there is anything else
         other than the Q tables that need to be saved (such as plots or gameplays), this
-        method should be implemented.
+        method should be implemented. Of course, extra variables needed to do this saving
+        should be added in the subclass, not here.
         :return:
         """
         raise NotImplementedError('Saving of extra data not implemented!')
@@ -121,7 +122,7 @@ class QTable:
         # continuous looping in a game...
         stateCounts = 1
         # Reset the environment...
-        currentState = self.env.reset()
+        _ = self.env.reset()
         # Set the agent to move first, a list
         # of all agents, and how many agents there
         # so we can loop through the list each time...
@@ -181,6 +182,17 @@ class QTable:
                                                                       self.QTables[agentName][row, col])
         # Decay the equation for the next game...
         self.epsilon = max(self.epsilon * self.epsilon, self.minEpsilon)
+
+    def updateGameMetrics(self, gameMemory):
+        """
+        Given the memory of the game just finished (as well as all the class variables), this
+        method will save any extra metrics that are to be defined by the user. Maybe these
+        metrics will be used by `load` and `saveDataArtifacts`. Regardless, this needs
+        to be implemented.
+        :param gameMemory:
+        :return:
+        """
+        raise NotImplementedError('Please update custom game metrics!')
 
 
 

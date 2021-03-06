@@ -167,6 +167,10 @@ class SnakeQTable(QTable):
         super().__init__(outputDir, experimentName, rows, cols, discreteAgents, environment,
                          stateLimit=stateLimit, epsilon=epsilon, learningRate=learningRate, epsilonDecay=epsilonDecay,
                          minEpsilon=minEpsilon, gamma=gamma, overwrite=overwrite)
+        # An array to store the snake scores. During saving, this list will
+        # be saved and then loaded if an experiment needs to be continued.
+        # A plot will also be saved.
+        self.snakeScores = []
 
     def mapStateToRow(self, encodedState):
         """
@@ -195,3 +199,19 @@ class SnakeQTable(QTable):
         :return:
         """
         pass
+
+    def updateGameMetrics(self, gameMemory):
+        """
+        In the case of the snake game, all we are doing is
+        adding the score to our list.
+        :param gameMemory:
+        :return:
+        """
+        # We start with a score of 3. Every time the snake eats a fruit, it is
+        # rewarded. Thus, we count all the times it got rewarded and then add 3
+        # to get the final score...
+        score = 3
+        for _, _, _, reward, _, _ in gameMemory:
+            if reward > 0:
+                score += 1
+        self.snakeScores.append(score)
