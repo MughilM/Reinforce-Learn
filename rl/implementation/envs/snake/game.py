@@ -216,7 +216,74 @@ class SnakeEnv(Environment):
         return newState, reward, gameOver
 
     def encodeCurrentState(self):
-        pass
+        """
+        This method turns the dictionary-like state into a state
+        encoded with 11 bits.
+        - Is there immediate danger in front, left, or right of the snake? (3 bits)
+        - The direction of the fruit wrt to the snake (up, down, left, right) (4 bits)
+        - The direction of the snake (up, down, left, right) (4 bits)
+        :return: The 11-bit string that is an encoding of the current environment state.
+        """
+        directionCode = {
+            'U': '1000',
+            'D': '0100',
+            'L': '0010',
+            'R': '0001'
+        }
+        coding = ''
+        # Look at the snake end for immediate danger. Depending
+        # on the snake direction, the 3 cells we need to check will differ.
+        head = self.agents[self.agentName].currentFrame[-1]
+        snakeDirection = self.agents[self.agentName].direction
+        if snakeDirection == 'U':
+            proximity = [
+                (head[0] - 1, head[1]),
+                (head[0], head[1] - 1),
+                (head[0], head[1] + 1)
+            ]
+        elif snakeDirection == 'D':
+            proximity = [
+                (head[0] + 1, head[1]),
+                (head[0], head[1] + 1),
+                (head[0], head[1] - 1)
+            ]
+        elif snakeDirection == 'L':
+            proximity = [
+                (head[0], head[1] - 1),
+                (head[0] + 1, head[1]),
+                (head[0] - 1, head[1])
+            ]
+        else:
+            proximity = [
+                (head[0], head[1] + 1),
+                (head[0] - 1, head[1]),
+                (head[0] + 1, head[1])
+            ]
+        # For each of the three proximity cells, check if they are
+        # part of the snake body or off the board...
+        dangers = ((r, c) in self.agents[self.agentName].currentFrame or
+                   not (0 <= r < self.boardSize and 0 <= c < self.boardSize)
+                   for r, c in proximity)
+        # Convert the booleans to 0s and 1s
+        coding += ''.join(map(lambda x: str(int(x)), dangers))
+        # Add the fruit bits...
+        fruitR, fruitC = self.fruitLoc
+        if head[0] > fruitR:
+            coding += '10'
+        elif head[0] < fruitR:
+            coding += '01'
+        else:
+            coding += '00'  # The fruit is on the same row
+        # Left/right
+        if head[1] > fruitC:
+            coding += '10'
+        elif head[1] < fruitC:
+            coding += '01'
+        else:
+            coding += '00'
+        # Now add the direction according to the defined dictionary
+        coding += directionCode[snakeDirection]
+        return coding
 
 
 class SnakeQTable(QTable):
