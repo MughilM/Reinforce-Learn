@@ -19,6 +19,9 @@ from ...base.qtable import QTable
 
 from typing import Dict
 import copy
+import altair as alt
+from pandas import DataFrame
+import numpy as np
 
 
 class SnakeEnv(Environment):
@@ -189,7 +192,8 @@ class SnakeQTable(QTable):
         :param kwargs:
         :return:
         """
-        pass
+        # Load the snake scores from the text file...
+        self.snakeScores = np.loadtxt('scores.txt')
 
     def saveDataArtifacts(self, **kwargs):
         """
@@ -198,7 +202,19 @@ class SnakeQTable(QTable):
         :param kwargs:
         :return:
         """
-        pass
+        # First plot the scores across the games
+        # and save it.
+        data = DataFrame(
+            {'Game': np.arange(1, len(self.snakeScores) + 1)},
+            {'Score': self.snakeScores}
+        )
+        chart = alt.Chart(data).mark_line().encode(
+            x='Game:Q',
+            y='Score:Q'
+        )
+        chart.save('scores.png')
+        # Then save the score values themselves...
+        np.savetxt('scores.txt', self.snakeScores)
 
     def updateGameMetrics(self, gameMemory):
         """
