@@ -18,7 +18,7 @@ class Agent:
         raise NotImplementedError('Please implement a reset function for the agent!')
 
     def makeMove(self, action, env):
-        return
+        raise NotImplementedError('Please implement the rules to make a move!')
 
     def checkValidAction(self, action):
         """

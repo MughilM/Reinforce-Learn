@@ -70,24 +70,24 @@ class SnakeAgent(DiscreteAgent):
         self.direction = 'R'
         self.gameOver = False
 
-    def makeTurn(self, turn, env):
+    def makeMove(self, action, env):
         """
-        If the snake needs to make a turn, this method
+        If the snake needs to make a action, this method
         is called. The environment is needed for the board
         size and the location of the fruit, so we can tell if we
         crashed (game over) or ate a fruit (snake gets longer).
         All the locations are updated automatically.
-        :param turn: One of 'F', 'L', or 'R'
+        :param action: One of 'F', 'L', or 'R'
         :param env: A instance of SnakeEnv
         :return: The reward and whether it was a game over...
         """
-        if turn not in self.actionList:
-            raise ValueError(f'Action "{turn}" not in the action list!')
+        if action not in self.actionList:
+            raise ValueError(f'Action "{action}" not in the action list!')
         if self.gameOver:
             print('Game is over! Please reset!')
             return
         newState = copy.deepcopy(self.currentFrame)
-        newDirection = self.TURN_RES[self.direction][turn]
+        newDirection = self.TURN_RES[self.direction][action]
         for i in range(self.score - 1):
             newState[i] = newState[i + 1]
         # If we didn't change direction, push everything one....
@@ -192,16 +192,35 @@ class SnakeEnv(Environment):
         }
         return startState
 
-
     def stepForward(self, agentName, action):
-        pass
+        """
+        For the snake, this will go one step forward, according to the action of
+        forward ('F'), left ('L'), or right ('R'). As usual, the next state,
+        obtained reward, and whether it's a game over will be returned.
+        :param agentName: The name of agent. There's only one here...
+        :param action: One of ['F', 'L', 'R']
+        :return: A 3-tuple of the next state, reward, and game over
+        """
+        if self.agents[agentName].gameOver:
+            raise ValueError('Game is already over. Please reset!')
+        reward, gameOver = self.agents[agentName].makeMove(action, env=self)
+        # Check to see if the snake ate the fruit and grew...
+        if reward > 0:
+            self.placeFruit(self.agents[agentName].currentFrame)
+        # The new state gets returned as a dictionary (it's unencoded)
+        newState = {
+            'boardSize': self.boardSize,
+            'snakeLocs': self.agents[agentName].currentFrame,
+            'fruitLoc': self.fruitLoc
+        }
+        return newState, reward, gameOver
 
     def encodeCurrentState(self):
         pass
 
 
 class SnakeQTable(QTable):
-    def __init__(self, outputDir, experimentName, rows, cols, discreteAgents: Dict[str, DiscreteAgent],
+    def __init__(self, outputDir, experimentName, rows, cols, discreteAgents: Dict[str, SnakeAgent],
                  environment: Environment, stateLimit=10000,
                  epsilon=1, learningRate=0.1, epsilonDecay=0.995,
                  minEpsilon=0.01, gamma=0.95, overwrite=False):

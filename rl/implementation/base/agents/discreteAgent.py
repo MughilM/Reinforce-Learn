@@ -25,7 +25,10 @@ class DiscreteAgent(Agent):
         self.actionList = actionList
 
     def reset(self):
-        raise NotImplementedError('Please implement a reset() method')
+        raise NotImplementedError('Please implement a reset() method!')
+
+    def makeMove(self, action, env):
+        raise NotImplementedError('Please implement a makeMove() method!')
 
     def checkValidAction(self, action):
         return action in self.actionList
