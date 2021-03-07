@@ -22,37 +22,7 @@ import copy
 import altair as alt
 from pandas import DataFrame
 import numpy as np
-
-
-class SnakeEnv(Environment):
-    def __init__(self, agents: Dict[str, Agent], boardSize=10, **kwargs):
-        """
-        Constructor. In addition to calling the standard Environment
-        __init__, a user must also provide the size of the board. The board
-        is a square, so provide the side length.
-        :param agents: In snake, there is only one agent, but it must be
-        given this way in order to comply with the Environment __init__
-        :param boardSize: The side length of the board. This will be a square.
-        :param kwargs: Additional keywords (Not necessary in Snake implementation)
-        """
-        super().__init__(agents, **kwargs)
-        # A board size of less than 5 is too small to
-        # learn anything meaningful.
-        if boardSize < 5:
-            raise ValueError(f'Board size of {boardSize} is too small!')
-        self.boardSize = boardSize
-        self.fruitLoc = (0, 0)
-        self.placedFruit = False
-
-    def reset(self):
-        pass
-
-    def stepForward(self, agentName, action):
-        pass
-
-    def encodeCurrentState(self):
-        pass
-
+from itertools import product
 
 class SnakeAgent(DiscreteAgent):
     def __init__(self, actionList: list):
@@ -160,6 +130,74 @@ class SnakeAgent(DiscreteAgent):
         self.direction = newDirection  # Set to new direction...
         self.currentFrame = newState
         return reward, self.gameOver
+
+
+class SnakeEnv(Environment):
+    def __init__(self, agents: Dict[str, SnakeAgent], boardSize=10, **kwargs):
+        """
+        Constructor. In addition to calling the standard Environment
+        __init__, a user must also provide the size of the board. The board
+        is a square, so provide the side length.
+        :param agents: In snake, there is only one agent, but it must be
+        given this way in order to comply with the Environment __init__
+        :param boardSize: The side length of the board. This will be a square.
+        :param kwargs: Additional keywords (Not necessary in Snake implementation)
+        """
+        super().__init__(agents, **kwargs)
+        self.agents = agents
+        # A board size of less than 5 is too small to
+        # learn anything meaningful.
+        if boardSize < 5:
+            raise ValueError(f'Board size of {boardSize} is too small!')
+        self.boardSize = boardSize
+        self.fruitLoc = (0, 0)
+        self.placedFruit = False
+        # Save the agent name, since there's only one, and
+        # we need to easily access it.
+        self.agentName = agents.keys()[0]
+        self.reset()
+
+    def placeFruit(self, snakeLocs):
+        """
+        Depending on where the snake, this method
+        randomly places the fruit somewhere on the
+        board.
+        :param snakeLocs: The current frame of the snake,
+        should be the frame from the agent...
+        :return:
+        """
+        validLocs = [(r, c) for r, c in product(range(self.boardSize), repeat=2)
+                     if (r, c) not in snakeLocs]
+        # Randomly select one...
+        selectionIndex = np.random.choice(len(validLocs))
+        self.fruitLoc = validLocs[selectionIndex]
+        self.placedFruit = True
+        return
+
+    def reset(self):
+        """
+        Resets the board....and a new fruit
+        is placed somewhere at random. The initial
+        location of the snake is top right corner facing
+        the left....
+        :return: The starting state of the board.
+        """
+        self.agents[self.agentName].reset()
+        # Place the fruit according to the current frame...
+        self.placeFruit(self.agents[self.agentName].currentFrame)
+        startState = {
+            'boardSize': self.boardSize,
+            'snakeLocs': self.agents[self.agentName].currentFrame,
+            'fruitLoc': self.fruitLoc
+        }
+        return startState
+
+
+    def stepForward(self, agentName, action):
+        pass
+
+    def encodeCurrentState(self):
+        pass
 
 
 class SnakeQTable(QTable):
