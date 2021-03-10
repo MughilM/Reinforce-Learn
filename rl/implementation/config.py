@@ -20,5 +20,5 @@ EXP_OUTPUT_DIR = os.path.join(BASE_DIR, 'experimentResults/')
 
 # Print out each location for debugging purposes...
 print(f'Source Directory\t\t{SRC_DIR}')
-print(f'Base Directory\t\t{BASE_DIR}')
+print(f'Base Directory\t\t\t{BASE_DIR}')
 print(f'Experiment Output Directory\t{EXP_OUTPUT_DIR}')

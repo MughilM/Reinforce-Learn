@@ -9,7 +9,7 @@ must be discrete, so we can select the best action. Continuous
 agents can only be used with neural networks.
 """
 
-from basicAgent import Agent
+from .basicAgent import Agent
 import numpy as np
 
 

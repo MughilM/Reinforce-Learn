@@ -14,8 +14,8 @@ information as possible.
 
 import numpy as np
 
-from agents.discreteAgent import DiscreteAgent
-from environment import Environment
+from .agents.discreteAgent import DiscreteAgent
+from .environment import Environment
 from typing import List, Dict
 import os
 import sys
