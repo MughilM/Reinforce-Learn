@@ -107,13 +107,21 @@ class QTable:
         """
         raise NotImplementedError('Saving of extra data not implemented!')
 
-    def playGame(self, firstTurn):
+    # TODO: Eventually, provide a way for agents to go through
+    # play that doesn't involve one turn after the other i.e.
+    # the next player's turn is determined by what happened on
+    # the previous turn, or something like that...
+    def playGame(self, agentPlayOrder: List[str]):
         """
         Plays a game according to the steps defined in the
         environment's stepForward. This method is designed to be
         environment-agnostic, meaning changing the rules will change
         the behaviour. This will also return the encoded game
         memory.
+        :param: agentPlayOrder: A list of the names of agents that
+        play in designatad order e.g. input of ['a1', 'a2', 'a3'] means
+        'a1' play first, 'a2' plays second, and 'a3' plays third,
+        then it is 'a1''s turn again.
         :return: A list of [state, agentName, action, reward, nextState, gameOver]
         for however long the game lasts...
         """
@@ -126,10 +134,8 @@ class QTable:
         # Set the agent to move first, a list
         # of all agents, and how many agents there
         # so we can loop through the list each time...
-        # TODO: Provide agent turn order...
-        allAgents = list(self.env.agents.keys())
-        agentToPlay = firstTurn
-        agentIndex = allAgents.index(agentToPlay)
+        agentIndex = 0
+        agentToPlay = agentPlayOrder[agentIndex]
         numOfAgents = self.env.getNumberOfAgents()
         gameOver = False
         gameMemory: List[List] = []
@@ -156,7 +162,10 @@ class QTable:
             # It is now the next agent's turn. Increment the index,
             # but also mod the number of agents we have, for automatic looping...
             agentIndex = (agentIndex + 1) % numOfAgents
-            agentToPlay = allAgents[agentIndex]
+            agentIndex += 1
+            if agentIndex == len(agentPlayOrder):
+                agentIndex = 0
+            agentToPlay = agentPlayOrder[agentIndex]
         # Game is over, so add the last state to the game memory and return...
         gameMemory[-1][4] = self.env.encodeCurrentState()
         return gameMemory
