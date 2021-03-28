@@ -51,7 +51,7 @@ class QTable:
         # the contents....
         if os.path.exists(os.path.join(outputDir, experimentName)):
             if overwrite:
-                shutil.rmtree(os.path.exists(os.path.join(outputDir, experimentName)))
+                shutil.rmtree(os.path.join(outputDir, experimentName))
             else:
                 print('WARNING: Experiment directory exists and overwriting is disabled! '
                       'Please rerun with overwriting enabled or provide another experiment'
@@ -111,7 +111,7 @@ class QTable:
     # play that doesn't involve one turn after the other i.e.
     # the next player's turn is determined by what happened on
     # the previous turn, or something like that...
-    def playGame(self, agentPlayOrder: List[str]):
+    def playGame(self, agentPlayOrder: List[str], random=True):
         """
         Plays a game according to the steps defined in the
         environment's stepForward. This method is designed to be
@@ -122,6 +122,10 @@ class QTable:
         play in designatad order e.g. input of ['a1', 'a2', 'a3'] means
         'a1' play first, 'a2' plays second, and 'a3' plays third,
         then it is 'a1''s turn again.
+        :param: random: A flag to say if the play should include
+        random choices. If set to False, then this will use the MAX
+        Q VALUES that are currently saved. Useful for checking the best
+        possible play through after a long training session...Default True..
         :return: A list of [state, agentName, action, reward, nextState, gameOver]
         for however long the game lasts...
         """
@@ -147,7 +151,7 @@ class QTable:
                 gameMemory[-1][4] = currentEncodedState
             # With an epsilon % chance, choose a random action.
             # Otherwise, choose the action with the largest Q-value..
-            if np.random.rand() < self.epsilon:
+            if random and np.random.rand() < self.epsilon:
                 action = self.env.agents[agentToPlay].chooseRandomAction()
             else:
                 mappedRow = self.mapStateToRow(currentEncodedState)
@@ -157,7 +161,7 @@ class QTable:
             currentState, reward, gameOver = self.env.stepForward(agentToPlay, action)
             # Append the state/action/reward/gameOver
             # Put a placeholder for the next state. It gets filled in at the start of the next loop)
-            gameMemory.append([currentEncodedState, agentToPlay, action, reward, gameOver])
+            gameMemory.append([currentEncodedState, agentToPlay, action, reward, None, gameOver])
             stateCounts += 1
             # It is now the next agent's turn. Increment the index,
             # but also mod the number of agents we have, for automatic looping...
@@ -190,7 +194,7 @@ class QTable:
             self.QTables[agentName][row, col] += self.learningRate * (reward + self.gamma * maxNextQValue -
                                                                       self.QTables[agentName][row, col])
         # Decay the equation for the next game...
-        self.epsilon = max(self.epsilon * self.epsilon, self.minEpsilon)
+        self.epsilon = max(self.epsilon * self.epsilonDecay, self.minEpsilon)
 
     def updateGameMetrics(self, gameMemory):
         """

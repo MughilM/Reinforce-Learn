@@ -21,7 +21,6 @@ class DiscreteAgent(Agent):
         can be of any type (strings, integers, etc.)
         :param actionList: The list of actions
         """
-        super().__init__()
         self.actionList = actionList
 
     def reset(self):

@@ -20,12 +20,13 @@ import os
 boardSize = 10  # Start small...
 experimentName = 'standalone_exp'
 initialE = 1
-lr = 0.1
+lr = 0.25
 stateLimit = 5000
-epsilonDecay = 0.99
+epsilonDecay = 0.995
 minEpsilon = 0.01
 gamma = 0.99
 overwrite = True  # We need to monitor changes in the input...
+episodes = 3000
 # To run a Qtable approach, we have to create the
 # agent and environment, and provide them as parameters
 # to the Qtable class...
@@ -49,3 +50,18 @@ snakeTable = SnakeQTable(
     gamma=gamma,
     overwrite=overwrite
 )
+# We manually loop and call the playGame and update functions...
+for _ in range(episodes):
+    memory = snakeTable.playGame(['snake'])
+    snakeTable.updateTable(memory)
+    snakeTable.updateGameMetrics(memory)
+    print(f'\rGame {snakeTable.gamesPlayed} / {episodes}', end='')
+# At the end, see what happens when we save...
+snakeTable.saveQTables()
+snakeTable.saveDataArtifacts()
+print()
+
+# Next, get the best possible play through...
+bestMemory = snakeTable.playGame(['snake'], random=False)
+snakeTable.updateGameMetrics(bestMemory)
+print(f'Best Game after {episodes} playthroughs: {snakeTable.snakeScores[-1]}')

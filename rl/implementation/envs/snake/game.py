@@ -20,13 +20,16 @@ from ...base.qtable import QTable
 from typing import Dict
 import copy
 import altair as alt
+import matplotlib.pyplot as plt
 from pandas import DataFrame
 import numpy as np
 from itertools import product
+import os
+
 
 class SnakeAgent(DiscreteAgent):
     def __init__(self, actionList: list):
-        super().__init__(actionList)
+        # super().__init__(actionList)
         self.currentFrame = []
         self.score = 0
         # We need a mapping for the resultant direction given
@@ -56,6 +59,7 @@ class SnakeAgent(DiscreteAgent):
         }
         self.direction = ''
         self.gameOver = False
+        super().__init__(actionList)
 
     def reset(self):
         """
@@ -143,7 +147,7 @@ class SnakeEnv(Environment):
         :param boardSize: The side length of the board. This will be a square.
         :param kwargs: Additional keywords (Not necessary in Snake implementation)
         """
-        super().__init__(agents, **kwargs)
+        # super().__init__(agents, **kwargs)
         self.agents = agents
         # A board size of less than 5 is too small to
         # learn anything meaningful.
@@ -154,7 +158,7 @@ class SnakeEnv(Environment):
         self.placedFruit = False
         # Save the agent name, since there's only one, and
         # we need to easily access it.
-        self.agentName = agents.keys()[0]
+        self.agentName = list(agents.keys())[0]
         self.reset()
 
     def placeFruit(self, snakeLocs):
@@ -291,13 +295,14 @@ class SnakeQTable(QTable):
                  environment: Environment, stateLimit=10000,
                  epsilon=1, learningRate=0.1, epsilonDecay=0.995,
                  minEpsilon=0.01, gamma=0.95, overwrite=False):
+        self.snakeScores = []
         super().__init__(outputDir, experimentName, rows, cols, discreteAgents, environment,
                          stateLimit=stateLimit, epsilon=epsilon, learningRate=learningRate, epsilonDecay=epsilonDecay,
                          minEpsilon=minEpsilon, gamma=gamma, overwrite=overwrite)
         # An array to store the snake scores. During saving, this list will
         # be saved and then loaded if an experiment needs to be continued.
         # A plot will also be saved.
-        self.snakeScores = []
+        # self.snakeScores = []
 
     def mapStateToRow(self, encodedState):
         """
@@ -328,17 +333,17 @@ class SnakeQTable(QTable):
         """
         # First plot the scores across the games
         # and save it.
-        data = DataFrame(
-            {'Game': np.arange(1, len(self.snakeScores) + 1)},
-            {'Score': self.snakeScores}
+        data = DataFrame.from_dict(
+            {'Game': np.arange(1, len(self.snakeScores) + 1),
+             'Score': self.snakeScores}
         )
         chart = alt.Chart(data).mark_line().encode(
             x='Game:Q',
             y='Score:Q'
         )
-        chart.save('scores.png')
+        chart.save(os.path.join(self.outputDir, self.expName, 'scores.html'))
         # Then save the score values themselves...
-        np.savetxt('scores.txt', self.snakeScores)
+        np.savetxt(os.path.join(self.outputDir, self.expName, 'scores.txt'), self.snakeScores)
 
     def updateGameMetrics(self, gameMemory):
         """
