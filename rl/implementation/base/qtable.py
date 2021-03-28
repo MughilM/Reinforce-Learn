@@ -47,6 +47,10 @@ class QTable:
         self.expName = experimentName
         self.overwrite = overwrite
 
+        # Flag to see if we have notified the user of
+        # reaching minimum epsilon...
+        self.notified = False
+
         # If the path exists and overwrite is True, then erase
         # the contents....
         if os.path.exists(os.path.join(outputDir, experimentName)):
@@ -195,6 +199,10 @@ class QTable:
                                                                       self.QTables[agentName][row, col])
         # Decay the equation for the next game...
         self.epsilon = max(self.epsilon * self.epsilonDecay, self.minEpsilon)
+        if not self.notified and self.epsilon == self.minEpsilon:
+            print('\nWARNING: Minimum epsilon reached! If this is well before expected,'
+                  ' consider lowering the decay for next training session...')
+            self.notified = True
 
     def updateGameMetrics(self, gameMemory):
         """

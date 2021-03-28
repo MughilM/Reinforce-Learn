@@ -20,13 +20,13 @@ import os
 boardSize = 10  # Start small...
 experimentName = 'standalone_exp'
 initialE = 1
-lr = 0.25
+lr = 0.15
 stateLimit = 5000
-epsilonDecay = 0.995
+epsilonDecay = 0.99
 minEpsilon = 0.01
 gamma = 0.99
 overwrite = True  # We need to monitor changes in the input...
-episodes = 3000
+episodes = 2000
 # To run a Qtable approach, we have to create the
 # agent and environment, and provide them as parameters
 # to the Qtable class...
