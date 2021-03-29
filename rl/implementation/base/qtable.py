@@ -215,6 +215,32 @@ class QTable:
         """
         raise NotImplementedError('Please update custom game metrics!')
 
+    def train(self, agentPlayOrder, episodes):
+        """
+        The method which allows us to train and update the Q table. This will
+        use the variables which are saved in the object, things like learning rate,
+        initial epsilon, epsilon decay rate, Each time it plays, a memory is
+        produced, and this memory is used to update the Q table and update
+        the game metrics. When all the episodes have been finished off,
+        the Q tables and data artifacts are saved to their directories...
+        :param: agentPlayOrder: The play order for the agents. Should be
+        list of agent names on who goes first, second, etc...
+        :param: episodes: The number of episodes to train for i.e. the number
+        of times we play the game.
+        :return: Nothing.
+        """
+        # As the doc says, we are assuming all the variables have
+        # been set up already. Thus, we just run the loop...
+        for _ in range(episodes):
+            memory = self.playGame(agentPlayOrder)
+            self.updateTable(memory)
+            self.updateGameMetrics(memory)
+            print(f'\rGame {self.gamesPlayed} / {episodes}', end='')
+        # We are done, save the tables and other data artifacts...
+        self.saveQTables()
+        self.saveDataArtifacts()
+        print()
+
 
 
 

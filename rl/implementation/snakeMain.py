@@ -50,16 +50,8 @@ snakeTable = SnakeQTable(
     gamma=gamma,
     overwrite=overwrite
 )
-# We manually loop and call the playGame and update functions...
-for _ in range(episodes):
-    memory = snakeTable.playGame(['snake'])
-    snakeTable.updateTable(memory)
-    snakeTable.updateGameMetrics(memory)
-    print(f'\rGame {snakeTable.gamesPlayed} / {episodes}', end='')
-# At the end, see what happens when we save...
-snakeTable.saveQTables()
-snakeTable.saveDataArtifacts()
-print()
+
+snakeTable.train(agentPlayOrder=['snake'], episodes=episodes)
 
 # Next, get the best possible play through...
 bestMemory = snakeTable.playGame(['snake'], random=False)
