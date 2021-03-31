@@ -4,19 +4,55 @@ Location: /rl/implementation
 Creation Date: 2021-02-20
 
 Whenever an experiment needs to be executed, this file is run. In this file, the user
-can provide which environment to run the experiment in. In addition,
-the user can provide arguments to fine-tune the experiment, such as whether s/he wants to
-run a Q-Table or a neural network implementation. Various hyperparameters such as number of games,
-gamma, etc. are also available. The corresponding file from /envs/ is grabbed and ran.
+can provide custom run functions for each method. I thought about the best way to
+put an umbrella over all possible ways someone might want to run, and I eventually
+just settled on a custom run function for each game. The reason is that there too much
+customization in how games are setup that it's almost impossible to create a single
+function to run them all. Mostly due to custom parameters in the environment and agent
+that must be provided, and custom ways that possible multi-agents must be setup.
+All that needs to be done is to map the argument to the function.
 """
 from .config import *
 from .envs.snake.game import *
 import argparse
 import os
 
-GAMES = {
-    'snake': SnakeQTable
+FUNCTIONS = {
+    'snake11': runSnake11
 }
+
+def runSnake11(expName, boardSize, episodes, lr, initialE, minE, epsilonDecay, gamma, overwrite):
+    # Create the environment with the specified board size
+    # and create the singular agent...
+    agentName = 'snake'
+    snakeAgent = SnakeAgent(actionList=['F', 'L', 'R'])
+    snakeEnv = SnakeEnv({agentName: snakeAgent}, boardSize=boardSize)
+
+    # Create the Q table using the rest of the variables..
+    snakeTable = SnakeQTable(
+        outputDir=EXP_OUTPUT_DIR,
+        experimentName=expName,
+        rows=2 ** 11,
+        cols=3,
+        discreteAgents={agentName: snakeAgent},
+        environment=snakeEnv,
+        stateLimit=5000,
+        epsilon=initialE,
+        learningRate=lr,
+        epsilonDecay=epsilonDecay,
+        minEpsilon=minE,
+        gamma=gamma,
+        overwrite=overwrite
+    )
+    # The Qtable has its own train method. So just run that...
+    snakeTable.train(agentPlayOrder=[agentName], episodes=episodes)
+
+    # Play through the best possible game
+    bestmemory = snakeTable.playGame([agentName], random=False)
+    snakeTable.updateGameMetrics(bestMemory)
+    print(f'Best game after {episodes} play throughs: {snakeTable.snakeScores[-1]}')
+
+
 
 def run(game, expName, boardSize, episodes, lr, initialE, minE, epsilonDecay, gamma, overwrite):
     """
@@ -27,12 +63,10 @@ def run(game, expName, boardSize, episodes, lr, initialE, minE, epsilonDecay, ga
     to be called based on the arguments (see below.....
     :return:
     """
-    # First grab the gameObject defined in our directory...
-    gameObj = GAMES[game]
-    # This one is guaranteed to be of type QTable... which means
-    # all the extra arguments, like the epsilon related stuff, gamma, etc.
-    # can be passed directly into the object...
-    # We also make to deal with extra configuration variables (such as board size for Snake)
+    # Each game is defined in the dictionary. To run it properly,
+    # we need the environment object, agent object, and the Q table class.
+    # We need to accomodate the possibility of including environment parameters,
+    # but maybe we'll deal with that later TODO.
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A program to train/play with reinforcement learning agents.')
