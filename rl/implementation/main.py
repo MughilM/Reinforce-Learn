@@ -71,13 +71,10 @@ if __name__ == '__main__':
     # Add all the arguments (there are a lot of them...)
     parser.add_argument('game', choices=['snake11'],
                         help='The type of game to play/train. Current choices are "snake".')
-    parser.add_argument('expName', required=True,
+    parser.add_argument('expName',
                         help='The experiment name. All data artifacts that might get saved will do so under'
                              'this subfolder in the EXP_OUTPUT_DIR defined in config.py. Currently, it'
                              f'is {EXP_OUTPUT_DIR}.')
-    parser.add_argument('--board-size', type=int, default=10,
-                        help='The board size for snake. Only gets used if snake is selected as the'
-                             'game. Default is a 10 by 10 grid.')
     parser.add_argument('--episodes', type=int, default=100,
                         help='Number of times to play the game, for training. Default 100.')
     parser.add_argument('--lr', type=float, default=1e-3,
@@ -91,9 +88,14 @@ if __name__ == '__main__':
                         help='The percentage decay of epsilon every episode. Default 99.5%.')
     parser.add_argument('--gamma', type=float, default=0.95,
                         help='The gamma value for RL i.e. how much decay to have for past actions. Default 0.99.')
-    parser.add_argument('--overwrite', type=bool, default=False,
+    parser.add_argument('--overwrite', default=False, action='store_true',
                         help='Whether to overwrite the folder where Q-table and model artifacts get outputted to.'
                              'Default False i.e. DO NOT OVERWRITE current directories.')
+
+    # Custom arguments needed per game...
+    parser.add_argument('--board-size', type=int, default=10,
+                        help='The board size for snake. Only gets used if snake is selected as the'
+                             'game. Default is a 10 by 10 grid.')
 
     # Parse all the arguments!
     args = parser.parse_args()
@@ -103,6 +105,10 @@ if __name__ == '__main__':
 
     # Get the corresponding run function from the dictionary
     runFunc = FUNCTIONS[args.game]
+
+    runFunc(expName=args.expName, episodes=args.episodes, lr=args.lr, initialE=args.initial_e,
+            minE=args.min_e, epsilonDecay=args.e_decay, gamma=args.gamma, overwrite=args.overwrite,
+            **{'boardSize': args.board_size})
 
 
 
