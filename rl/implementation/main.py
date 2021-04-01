@@ -11,17 +11,26 @@ customization in how games are setup that it's almost impossible to create a sin
 function to run them all. Mostly due to custom parameters in the environment and agent
 that must be provided, and custom ways that possible multi-agents must be setup.
 All that needs to be done is to map the argument to the function.
+
+It's important that each custom run function has the variables in the same order,
+as these get called from main. Any extra keyword arguments for things like
+envirnoment parameters and the like should be in the end, as these get
+passed through kwargs at the end.
 """
 from .config import *
 from .envs.snake.game import *
 import argparse
 import os
 
-FUNCTIONS = {
-    'snake11': runSnake11
-}
+# List of arguments to treat as default. These will have
+# their own parameter name in the run function. Any variable not listed here
+# will get passed through kwargs.
+DEFAULT_ARGS = {'expName', 'episodes', 'lr', 'initialE', 'minE',
+                'epsilonDecay', 'gamma', 'overwrite'}
 
-def runSnake11(expName, boardSize, episodes, lr, initialE, minE, epsilonDecay, gamma, overwrite):
+def runSnake11(expName, episodes, lr, initialE, minE, epsilonDecay, gamma, overwrite, **kwargs):
+    # The board size is needed. Get it from kwargs...
+    boardSize = kwargs['boardSize']
     # Create the environment with the specified board size
     # and create the singular agent...
     agentName = 'snake'
@@ -48,30 +57,19 @@ def runSnake11(expName, boardSize, episodes, lr, initialE, minE, epsilonDecay, g
     snakeTable.train(agentPlayOrder=[agentName], episodes=episodes)
 
     # Play through the best possible game
-    bestmemory = snakeTable.playGame([agentName], random=False)
+    bestMemory = snakeTable.playGame([agentName], random=False)
     snakeTable.updateGameMetrics(bestMemory)
     print(f'Best game after {episodes} play throughs: {snakeTable.snakeScores[-1]}')
 
 
-
-def run(game, expName, boardSize, episodes, lr, initialE, minE, epsilonDecay, gamma, overwrite):
-    """
-    The main worker method. This will have all the options necessary so that
-    one of the existing reinforcement learning implementations is either
-    trained or played with. The agents could be games or some other thing.
-    The options and the in-built dictionary allow the correct classes
-    to be called based on the arguments (see below.....
-    :return:
-    """
-    # Each game is defined in the dictionary. To run it properly,
-    # we need the environment object, agent object, and the Q table class.
-    # We need to accomodate the possibility of including environment parameters,
-    # but maybe we'll deal with that later TODO.
+FUNCTIONS = {
+    'snake11': runSnake11
+}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A program to train/play with reinforcement learning agents.')
     # Add all the arguments (there are a lot of them...)
-    parser.add_argument('game', choices=['snake'],
+    parser.add_argument('game', choices=['snake11'],
                         help='The type of game to play/train. Current choices are "snake".')
     parser.add_argument('expName', required=True,
                         help='The experiment name. All data artifacts that might get saved will do so under'
@@ -102,5 +100,9 @@ if __name__ == '__main__':
 
     # Make the output directories corresponding to the experiment name...
     os.makedirs(os.path.join(BASE_DIR, EXP_OUTPUT_DIR, args.expName), exist_ok=True)
+
+    # Get the corresponding run function from the dictionary
+    runFunc = FUNCTIONS[args.game]
+
 
 
