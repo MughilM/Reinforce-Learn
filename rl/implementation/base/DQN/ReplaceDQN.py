@@ -1,7 +1,7 @@
 """
 File: ReplaceDQN.py
-Location: implementation/base/DQN
 Creation Date: 2021-04-01
+Location: implementation/base/DQN
 
 This file implements a type of deep Q network used for reinforcement learning training.
 I've called Replace DQN, where there are actually two copies of the same network.
