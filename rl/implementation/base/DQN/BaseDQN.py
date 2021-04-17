@@ -9,11 +9,15 @@ the way this plays the game is different, since its prediction method for the ne
 is neural network based instead of table based.
 """
 
-import tensorflow as tf
-from tensorflow.keras.models import *
-from typing import *
+
+from tensorflow.keras.models import Model
+from typing import Dict
 from ..agents.basicAgent import Agent
 from ..environment import Environment
+
+import os
+import shutil
+import sys
 
 
 class BaseDQN:
@@ -53,6 +57,20 @@ class BaseDQN:
         self.outputDir = outputDir
         self.expName = experimentName
         self.overwrite = overwrite
+
+        # Environment and agents...
+        self.env = environment
+        self.agents = agents
+
+        if os.path.exists(os.path.join(outputDir, experimentName)):
+            if overwrite:
+                shutil.rmtree(os.path.join(outputDir, experimentName))
+            else:
+                print('WARNING: Experiment directory exists and overwriting is disabled! '
+                      'Please rerun with overwriting enabled or provide another experiment name.')
+                sys.exit(1)
+        # Create the directory
+        os.makedirs(os.path.join(outputDir, experimentName))
 
     def createModel(self) -> Model:
         """
@@ -95,10 +113,20 @@ class BaseDQN:
         :param kwargs:
         :return:
         """
+        raise NotImplementedError('Please implement saving custom artifacts. Allowed to put pass.')
 
     def playGame(self):
         """
         How we play the game. This is different than the QTable function because now, our prediction
-
+        has to now return states that can be passed into the resident model.
         :return:
         """
+
+    def train(self):
+        """
+        The main method which will train the network, updating the Q values. This can be similar to the
+        playGame function. Thus, for DQNs, it isn't advisable to use playGame, unless you are actually
+        planning a play through using the network predictions. The loop here is the same as the actual
+        play through.
+        """
+        raise NotImplementedError('Please implement a train function so that the model can update.')
