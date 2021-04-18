@@ -13,6 +13,7 @@ from collections import deque
 
 class ExperienceReplay:
     def __init__(self, maxSize):
+        self.expSize = maxSize
         self.experience = deque(maxlen=maxSize)
 
     def __len__(self):

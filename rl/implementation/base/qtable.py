@@ -170,9 +170,6 @@ class QTable:
             # It is now the next agent's turn. Increment the index,
             # but also mod the number of agents we have, for automatic looping...
             agentIndex = (agentIndex + 1) % numOfAgents
-            agentIndex += 1
-            if agentIndex == len(agentPlayOrder):
-                agentIndex = 0
             agentToPlay = agentPlayOrder[agentIndex]
         # Game is over, so add the last state to the game memory and return...
         gameMemory[-1][4] = self.env.encodeCurrentState()

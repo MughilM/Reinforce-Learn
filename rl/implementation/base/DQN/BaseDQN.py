@@ -11,10 +11,12 @@ is neural network based instead of table based.
 
 
 from tensorflow.keras.models import Model
-from typing import Dict
+from typing import Dict, List
 from ..agents.basicAgent import Agent
 from ..environment import Environment
+from ..utils.experienceReplay import ExperienceReplay
 
+import numpy as np
 import os
 import shutil
 import sys
@@ -22,8 +24,8 @@ import sys
 
 class BaseDQN:
     def __init__(self, outputDir, experimentName, agents: Dict[str, Agent], environment: Environment,
-                 stateLimit=10000, epsilon=1, learningRate=0.1, epsilonDecay=0.995,
-                 minEpsilon=0.01, gamma=0.95, overwrite=False):
+                 agentPlayOrder: List[str], stateLimit=10000, epsilon=1, learningRate=0.1, epsilonDecay=0.995,
+                 minEpsilon=0.01, gamma=0.95, maxBufferSize=2000, overwrite=False):
         """
         The base initializer. Includes many default values for training. Anything else should be
         included in sub classes.
@@ -31,7 +33,7 @@ class BaseDQN:
         :param experimentName: The name of the experiment. Model artifacts are saved in subfolder of
         the same name
         :param agents: A dictionary of agents. Could be more than one, and turn order is enforced through
-        agent naems.
+        agent names.
         :param environment: The environment object. Maybe needed to access environment variables.
         :param stateLimit: The max state limit to stop the current game. Prevents infinite looping between
         the same set of states.
@@ -49,6 +51,12 @@ class BaseDQN:
         self.minEpsilon = minEpsilon
         self.gamma = gamma
         self.stateLimit = stateLimit
+        self.maxBufferSize = maxBufferSize
+        self.replay = ExperienceReplay(maxBufferSize)
+
+        self.agentPlayOrder = agentPlayOrder
+        self.turnIndex = 0
+        self.agentToPlay = agentPlayOrder[self.turnIndex]
 
         # Make the target model from createModel...
         self.targetModel = self.createModel()
@@ -79,6 +87,17 @@ class BaseDQN:
         :return: A Model object.
         """
         raise NotImplementedError('Please implement the createModel function so we can train :)')
+
+    def chooseActionFromPrediction(self, QValPreds):
+        """
+        This is an important method. Given the Q-value predictions that are popped out from
+        the model, how are we going to use that to make an action decision? We don't know whether
+        we have a continuous action space (in which case we need the output directly), or
+        discrete, in which case we need to run argmax to get the next action.
+        TODO: See if you can make this a kind of flag e.g. discrete=True and put logic in train().
+        :param QValPreds: The array of the Q value predictions.
+        """
+        raise NotImplementedError('Please implement a way to return the action from the Q value predictions.')
 
     def loadModel(self):
         """
@@ -122,11 +141,61 @@ class BaseDQN:
         :return:
         """
 
-    def train(self):
+    def train(self, batchSize, trainSteps, resetEnv=False):
         """
         The main method which will train the network, updating the Q values. This can be similar to the
         playGame function. Thus, for DQNs, it isn't advisable to use playGame, unless you are actually
         planning a play through using the network predictions. The loop here is the same as the actual
         play through.
+
+        :param batchSize: The batch size of the model. The model samples this many
+        steps from the buffer to use for training the model.
+        :param trainSteps: The number of batches to train for.
+        :param resetEnv: Whether to reset the environment, meaning to start over the
+        ongoing game...
+        :return: None
         """
-        raise NotImplementedError('Please implement a train function so that the model can update.')
+        if resetEnv:
+            _ = self.env.reset()
+            self.turnIndex = 0
+        self.agentToPlay = self.agentPlayOrder[self.turnIndex]
+        # Unlike with playGame where we play until game over,
+        # here we just loop for the number of train steps.
+        # As with playGame, we use the encodeCurrentState method from
+        # the environment.
+        for _ in range(trainSteps):
+            currentEncodedState = self.env.encodeCurrentState()
+            # Calculate the next action using epsilon greedy.
+            # Either choose a random action or pass the current state
+            # through the model...
+            if np.random.rand() < self.epsilon:
+                action = self.env.agents[self.agentToPlay].chooseRandomAction()
+            else:
+                # Pass through the model, make sure to add a batch dimension...
+                prediction = self.targetModel(np.expand_dims(currentEncodedState, axis=0))
+                # These are the Q values. Take the maximum one...
+                action = self.chooseActionFromPrediction(prediction)
+            # Step forward in the environment using the action.
+            nextRawState, reward, gameOver = self.env.stepForward(self.agentToPlay, action)
+            # Call encodeCurrentState(), now this is wrt to the nextState...
+            nextEncodedState = self.env.encodeCurrentState()
+            # Append this to the experience replay.
+            self.replay.add((currentEncodedState, self.agentToPlay, reward, nextEncodedState, gameOver))
+            # Go to the next player/agent...
+            self.turnIndex = (self.turnIndex + 1) % len(self.agentPlayOrder)
+            self.agentToPlay = self.agentPlayOrder[self.turnIndex]
+            # If we got a game over, then we need to reset the environment...
+            # ...and reset the player...
+            if gameOver:
+                _ = self.env.reset()
+                self.turnIndex = 0
+                self.agentToPlay = self.agentPlayOrder[self.turnIndex]
+            ####################
+            ###### TRAIN #######
+            # We sample a batch from the experience replay, but only
+            # if the buffer is full...
+            if len(self.replay.experience) == self.replay.expSize:
+                states, actions, rewards, nextStates, dones = self.replay.sample(batchSize)
+            # Before we can actually train a batch, we need to calculate the
+            # target Q values to train against, using the nextStates
+
