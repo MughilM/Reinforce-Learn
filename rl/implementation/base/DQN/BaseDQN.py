@@ -123,7 +123,8 @@ class BaseDQN:
         It is saved in the output directory under a subfolder of the experiment name.
         :return:
         """
-        self.targetModel.save()
+        # TODO: Double check the save behavior to ensure consistent format.
+        self.targetModel.save(os.path.join(self.outputDir, self.expName, 'model.tgz'))
 
     def saveDataArtifacts(self, **kwargs):
         """
@@ -193,9 +194,28 @@ class BaseDQN:
             ####################
             ###### TRAIN #######
             # We sample a batch from the experience replay, but only
-            # if the buffer is full...
-            if len(self.replay.experience) == self.replay.expSize:
-                states, actions, rewards, nextStates, dones = self.replay.sample(batchSize)
-            # Before we can actually train a batch, we need to calculate the
-            # target Q values to train against, using the nextStates
-
+            # if the buffer is full...Otherwise, skip ahead to
+            # the next turn...
+            if len(self.replay.experience) != self.replay.expSize:
+                continue
+            states, actions, rewards, nextStates, dones = self.replay.sample(batchSize)
+            # Before we can actually train a batch, we need to calculate
+            # the current Q values, and match them to the target
+            # Q values we want, based on the rewards and the max Q values
+            # of the next states.
+            currentQVals = self.targetModel(states)
+            nextQVals = self.targetModel(nextStates)
+            # In order to train properly, the target "y values" need to have the same
+            # shape as the model's output. Since we should only change the weights
+            # for the selected action, the rest should be EXACTLY the same as input,
+            # so their loss would evaluate to 0.
+            # Grab the indices where the next Q value is maximum...
+            nextQValMaxLocs = np.argmax(nextQVals, axis=1)
+            # Multiply these by gamma and (1 - dones), so the game over flags automatically
+            # zero out the done states, leaving the rewards...
+            expectedQVals = rewards + (1 - dones) * self.gamma * nextQValMaxLocs
+            # Now assign these values to the cells corresponding to the action taken...
+            currentQVals[np.arange(currentQVals.shape[0]), actions] = expectedQVals
+            # Now train on batch. Because only the action-taken cells changed, only
+            # those will have non-zero loss and only those weights will change.
+            self.targetModel.train_on_batch(x=states, y=currentQVals)
