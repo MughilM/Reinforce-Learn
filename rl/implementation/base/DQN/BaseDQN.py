@@ -181,7 +181,7 @@ class BaseDQN:
             # Call encodeCurrentState(), now this is wrt to the nextState...
             nextEncodedState = self.env.encodeCurrentState()
             # Append this to the experience replay.
-            self.replay.add((currentEncodedState, self.agentToPlay, reward, nextEncodedState, gameOver))
+            self.replay.add((currentEncodedState, action, reward, nextEncodedState, gameOver))
             # Go to the next player/agent...
             self.turnIndex = (self.turnIndex + 1) % len(self.agentPlayOrder)
             self.agentToPlay = self.agentPlayOrder[self.turnIndex]
